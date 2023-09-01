@@ -1,0 +1,36 @@
+---
+- name: Tevbox Server Setup
+  # hosts: all # all servers we want to stage shall be bootstraped the same way
+  hosts: localhost
+  become: true
+  become_user: root
+  vars:
+    openstack_auth_url: "https://api.pub1.infomaniak.cloud/identity"
+    openstack_project_name: "PCP-9YST2JB"
+  vars_files:
+    - secrets.yml
+  # pre_tasks:
+  #   - name: Setup remote machine (gather informations)
+  #     setup:
+  #     register: setup_status
+  #     until: setup_status is success
+  #     delay: 10
+  #     retries: 3
+  roles:
+    - role: openstack
+  # post_tasks:
+  #   - name: We are ready
+  #     debug:
+  #       msg:
+  #         - "Your Nextcloud at https://{{ fqdn }}:{{ https_port }} is ready."
+  #         - "Login with user: {{ nc_admin }}"
+  #         - "Environment:"
+  #         - "  DB Name: {{ nc_db }}"
+  #         - "  DB User: {{ nc_db_user }}"
+  #         - "  Webroot: /var/www/nextcloud"
+  #         - "  PHP Version: {{ php_version }}"
+  #         - "  PHP-FPM Socket: {{ php_fpm_sock }}"
+  #         - "  Data Dir: {{ data_dir }}"
+  #         - "  OS: {{ ansible_distribution }}"
+  #         - "  SSH-Port: {{ ansible_port }}"
+  #         - "  Nextcloud Logs: {{ data_dir }}/nextcloud.log"

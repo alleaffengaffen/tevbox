@@ -1,0 +1,10 @@
+---
+galaxy_info:
+  author: Nathanael Liechti
+  description: Create server on openstack provider
+
+  platforms:
+    - name: Ubuntu
+      versions:
+        - 22
+        - 23

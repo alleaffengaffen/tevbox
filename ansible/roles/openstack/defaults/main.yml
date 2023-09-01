@@ -1,0 +1,4 @@
+data_dir: "/data"
+http_port: 80 # HTTP Port to open on firewall
+https_port: 443 # HTTPS Port to open on firewall
+pesize: 16 # See https://docs.ansible.com/ansible/latest/collections/community/general/lvg_module.html#parameter-pesize

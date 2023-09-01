@@ -9,10 +9,5 @@ From time to time we need a development environment on the go. While there are m
 - they usually stop working when you log of
 
 To fix these issues, this repo does the following:
-- bootstrap a new cloud instance on any openstack provider
-- joins the server to my [tailnet](https://tailscale.com), for remote-access and internet-exposing
-- installs and runs the [vs-code server](https://github.com/microsoft/vscode-remote-release) on the instance
-- runs any scripts / configurations you want
-- stops the server at a fixed time in the evening while notifing you about this so that you could intervent if required
-
-
+- create a new cloud instance using Terraform's openstack provider
+- execute ansible-pull on the new instance to configure it as a development machine
