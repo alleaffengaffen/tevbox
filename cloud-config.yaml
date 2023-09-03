@@ -32,7 +32,23 @@ write_files:
     content: |
       net.ipv4.ip_forward          = 1
       net.ipv6.conf.all.forwarding = 1
+  - path: /etc/systemd/system/tailscale-logout.service
+    content: |
+      [Unit]
+      Description=Logout on tailscale when shutdown
+      DefaultDependencies=no
+      Before=halt.target shutdown.target reboot.target
+
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/bin/tailscale logout
+      RemainAfterExit=yes
+
+      [Install]
+      WantedBy=halt.target shutdown.target reboot.target
 runcmd:
+  - systemctl daemon-reload
+  - systemctl enable tailscale-logout.service
   - systemctl disable ssh # we use tailscale ssh or console
   - sudo sysctl -p /etc/sysctl.d/99-tailscale.conf
   - sudo tailscale up --ssh --auth-key "${tailnet_auth_key}"

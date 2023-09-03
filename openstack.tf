@@ -6,7 +6,7 @@ resource "openstack_compute_instance_v2" "tevbox" {
   image_id            = "a103ffce-9165-42d7-9c1f-ba0fe774fac5" # Ubuntu 22.04 LTS Jammy Jellyfish
   flavor_name         = "a1-ram2-disk20-perf1"
   security_groups     = ["default"] # Default allows egress but denies all ingress
-  user_data           = cloudinit_config.tevbox.rendered
+  user_data           = data.cloudinit_config.tevbox.rendered
   stop_before_destroy = true
 
   network {
@@ -14,7 +14,7 @@ resource "openstack_compute_instance_v2" "tevbox" {
   }
 }
 
-resource "cloudinit_config" "tevbox" {
+data "cloudinit_config" "tevbox" {
   gzip          = false
   base64_encode = false
 
@@ -43,7 +43,7 @@ resource "tailscale_tailnet_key" "bootstrap" {
   tags          = ["tag:funnel"]
 
   # https://github.com/tailscale/terraform-provider-tailscale/issues/144
-  # lifecylce {}
+  # lifycycle {}
 }
 
 ############
