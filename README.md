@@ -27,6 +27,7 @@ Once you shutdown the instance or run Terraform destroy, the device is automatic
 
 ** Since the instance is a one-shot instance, remember to safe your work always! **
 
+
 ### Permannent secrets
 
 For this solution to work we need some permanent things:
@@ -40,3 +41,4 @@ For this solution to work we need some permanent things:
 Some things to improve:
 - [ ] Finish configuring the instance (currently it's a blank instance, some tools would be cool)
 - [ ] Imform the user about the running instance using a cronjob that executes a curl against Telegram's API
+- [ ] Note: an update to the cloud_init file won't do anything since recreation of the tailnet_key is currently not properly handled (https://github.com/tailscale/terraform-provider-tailscale/issues/144)
