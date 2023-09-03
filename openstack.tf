@@ -1,76 +1,49 @@
-### Common things 
-locals {
-  image_id = "a103ffce-9165-42d7-9c1f-ba0fe774fac5" # Ubuntu 22.04 LTS Jammy Jellyfish
-  ssh_user = "terraform"
-  cloud_init_file = templatefile("${path.module}/templates/cloud_init.tmpl", {
-    ssh_user        = local.ssh_user
-    device_auth_key = tailscale_tailnet_key.bootstrap.key
-    ssh_keys        = [openstack_compute_keypair_v2.terraform.public_key, openstack_compute_keypair_v2.yubikey.public_key]
-    hashed_root_pw  = data.akeyless_static_secret.root_password.value
-  })
-}
-
-data "akeyless_static_secret" "root_password" {
-  # Note: password must already be hashed for cloud-init
-  # use: openssl passwd -1 -salt SaltSalt ""
-  path = "axiom/infrastrucutre/root_hashed"
-}
-
-resource "openstack_compute_keypair_v2" "yubikey" {
-  name       = "yubikey"
-  public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJov21J2pGxwKIhTNPHjEkDy90U8VJBMiAodc2svmnFC cardno:000618187880"
-}
-
-# used by the k3s terraform module
-resource "openstack_compute_keypair_v2" "terraform" {
-  name = "terraform"
-}
-
-resource "time_rotating" "tskey" {
-  rotation_minutes = 5
-}
-resource "tailscale_tailnet_key" "bootstrap" {
-  ephemeral     = false
-  reusable      = true
-  preauthorized = true
-  expiry        = 300 # 5min
-  tags          = ["tag:k3s"]
-
-  # https://github.com/tailscale/terraform-provider-tailscale/issues/144
-  lifecycle {
-    replace_triggered_by = [time_rotating.tskey]
-  }
-}
-
-### M-O-1 (first control-plane node)
-resource "openstack_compute_instance_v2" "m-o-1" {
-  name                = "m-o-1"
-  image_id            = local.image_id
+############
+# Instance
+############
+resource "openstack_compute_instance_v2" "tevbox" {
+  name                = "tevbox"
+  image_id            = "a103ffce-9165-42d7-9c1f-ba0fe774fac5" # Ubuntu 22.04 LTS Jammy Jellyfish
   flavor_name         = "a1-ram2-disk20-perf1"
-  security_groups     = [openstack_compute_secgroup_v2.axiom_default.name]
-  user_data           = local.cloud_init_file
+  security_groups     = ["default"] # Default allows egress but denies all ingress
+  user_data           = cloudinit_config.tevbox.rendered
   stop_before_destroy = true
 
   network {
-    name = "axiom"
-  }
-
-  lifecycle {
-    prevent_destroy = true
-    ignore_changes  = [user_data]
+    name = "ext-net1"
   }
 }
 
-data "tailscale_device" "m-o-1" {
-  name = "m-o-1.crocodile-bee.ts.net"
-}
-resource "tailscale_device_key" "m-o-1" {
-  device_id           = data.tailscale_device.m-o-1.id
-  key_expiry_disabled = true
+resource "cloudinit_config" "tevbox" {
+  gzip          = false
+  base64_encode = false
 
-  lifecycle {
-    replace_triggered_by = [openstack_compute_instance_v2.m-o-1]
+  part {
+    filename     = "cloud-script.sh"
+    content_type = "text/x-shellscript"
+
+    content = file("${path.module}/cloud-script.sh")
   }
+
+  part {
+    filename     = "cloud-config.yaml"
+    content_type = "text/cloud-config"
+
+    content = templatefile("${path.module}/cloud-config.yaml", {
+      tailnet_auth_key = tailscale_tailnet_key.bootstrap.key
+    })
+  }
+}
+
+resource "tailscale_tailnet_key" "bootstrap" {
+  ephemeral     = true
+  reusable      = false
+  preauthorized = true
+  expiry        = 300 # 5min
+  tags          = ["tag:funnel"]
+
+  # https://github.com/tailscale/terraform-provider-tailscale/issues/144
+  # lifecylce {}
 }
 
 ############
