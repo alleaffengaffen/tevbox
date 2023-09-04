@@ -1,0 +1,21 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+
+jobs:
+  terraform:
+    name: "Terraform Run"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.6
+      - name: Terraform Init
+        id: init
+        run: terraform init
+      - name: Terraform Apply
+        run: terraform apply -auto-approve -input=false

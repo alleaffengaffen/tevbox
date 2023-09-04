@@ -2,7 +2,7 @@
 # Instance
 ############
 resource "openstack_compute_instance_v2" "tevbox" {
-  name                = "tevbox"
+  name                = "tevbox-${random_integer.count.result}"
   image_id            = "a103ffce-9165-42d7-9c1f-ba0fe774fac5" # Ubuntu 22.04 LTS Jammy Jellyfish
   flavor_name         = "a1-ram2-disk20-perf1"
   security_groups     = ["default"] # Default allows egress but denies all ingress
@@ -12,6 +12,11 @@ resource "openstack_compute_instance_v2" "tevbox" {
   network {
     name = "ext-net1"
   }
+}
+
+resource "random_integer" "count" {
+  min = 1
+  max = 50000
 }
 
 data "cloudinit_config" "tevbox" {
@@ -36,14 +41,11 @@ data "cloudinit_config" "tevbox" {
 }
 
 resource "tailscale_tailnet_key" "bootstrap" {
-  ephemeral     = true
+  ephemeral     = false
   reusable      = false
   preauthorized = true
   expiry        = 300 # 5min
   tags          = ["tag:funnel"]
-
-  # https://github.com/tailscale/terraform-provider-tailscale/issues/144
-  # lifycycle {}
 }
 
 ############
@@ -84,14 +86,7 @@ provider "tailscale" {
 }
 
 terraform {
-  backend "remote" {
-    organization = "technat"
-
-    workspaces {
-      name = "tevbox"
-    }
-  }
-  required_version = ">= 0.14.0"
+  required_version = ">= 1.5.6"
   required_providers {
     openstack = {
       source  = "terraform-provider-openstack/openstack"
