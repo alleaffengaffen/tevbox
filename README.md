@@ -33,6 +33,7 @@ Once you shutdown the instance or run Terraform destroy, the device is automatic
 For this solution to work we need some permanent things:
 - A Terrraform workspace
 - an Openstack project with an application credential saved in the Terraform workspace
+- a Security Group named `unrestricted` in the openstack project that does exactly that
 - A tailscale API key to generate tailnet keys
 - This repo holding the source-code
 
