@@ -33,24 +33,40 @@ write_files:
     content: |
       net.ipv4.ip_forward          = 1
       net.ipv6.conf.all.forwarding = 1
-  - path: /etc/systemd/system/tailscale-logout.service
+  - path: /etc/ssh/sshd_config
+    content: |
+      Port 22
+      PermitRootLogin no
+      PermitEmptyPasswords no
+      PasswordAuthentication no
+      PubkeyAuthentication yes
+      ChallengeResponseAuthentication no
+      KbdInteractiveAuthentication no
+      UsePAM yes
+      X11Forwarding no
+      PrintMotd no
+      AcceptEnv LANG LC_*
+      Subsystem    sftp    /usr/lib/openssh/sftp-server
+      Include /etc/ssh/sshd_config.d/*.conf
+  - path: /etc/systemd/system/termination-handler.service
     content: |
       [Unit]
-      Description=Logout on tailscale when shutdown
-      DefaultDependencies=no
-      Before=halt.target shutdown.target reboot.target
+      Description=Handle instance termination
+      Wants=network-online.target
+      After=network-online.target
 
       [Service]
-      Type=oneshot
-      ExecStart=/usr/bin/tailscale logout
-      RemainAfterExit=yes
+      User=root
+      WorkingDirectory=/opt/termination-handler/
+      ExecStart=go run main.go
+      Restart=never
 
       [Install]
-      WantedBy=halt.target shutdown.target reboot.target
+      WantedBy=multi-user.target
 runcmd:
   - systemctl daemon-reload
-  - systemctl enable tailscale-logout.service
-  - systemctl disable ssh # we use tailscale ssh or console
+  - systemctl restart sshd
+  - systemctl enable termination-handler.service
   - sudo sysctl -p /etc/sysctl.d/99-tailscale.conf
   - sudo tailscale up --ssh --auth-key "${tailnet_auth_key}"
   - sudo ufw allow in on tailscale0

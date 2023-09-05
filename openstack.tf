@@ -16,7 +16,7 @@ resource "openstack_compute_instance_v2" "tevbox" {
 
 resource "random_integer" "count" {
   min = 1
-  max = 50000
+  max = 500
 }
 
 data "cloudinit_config" "tevbox" {
