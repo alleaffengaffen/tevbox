@@ -5,7 +5,7 @@ resource "openstack_compute_instance_v2" "tevbox" {
   name                = "tevbox-${random_integer.count.result}"
   image_id            = "a103ffce-9165-42d7-9c1f-ba0fe774fac5" # Ubuntu 22.04 LTS Jammy Jellyfish
   flavor_name         = "a1-ram2-disk20-perf1"
-  security_groups     = ["default"] # Default allows egress but denies all ingress
+  security_groups     = ["unrestricted"] # Default allows egress but denies all ingress
   user_data           = data.cloudinit_config.tevbox.rendered
   stop_before_destroy = true
 
