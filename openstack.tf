@@ -36,6 +36,7 @@ data "cloudinit_config" "tevbox" {
 
     content = templatefile("${path.module}/cloud-config.yaml", {
       tailnet_auth_key = tailscale_tailnet_key.bootstrap.key
+      telegram_api_key = var.telegram_api_key
     })
   }
 }
@@ -61,6 +62,11 @@ variable "openstack_user" {
 }
 
 variable "tailscale_api_key" {
+  type      = string
+  sensitive = true
+}
+
+variable "telegram_api_key" {
   type      = string
   sensitive = true
 }

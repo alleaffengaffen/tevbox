@@ -22,4 +22,5 @@ jobs:
           TF_VAR_openstack_token: ${{ secrets.TF_VAR_openstack_token }}
           TF_VAR_openstack_user: ${{ secrets.TF_VAR_openstack_user }}
           TF_VAR_tailscale_api_key: ${{ secrets.TF_VAR_tailscale_api_key }}
+          TF_VAR_telegram_api_key: ${{ secrets.TF_VAR_telegram_api_key }}
         run: terraform apply -auto-approve -input=false

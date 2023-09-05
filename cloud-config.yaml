@@ -53,20 +53,21 @@ write_files:
       [Unit]
       Description=Handle instance termination
       Wants=network-online.target
-      After=network-online.target
+      After=cloud-final.service
 
       [Service]
       User=root
       WorkingDirectory=/opt/termination-handler/
       ExecStart=go run main.go
+      Environment=TELEGRAM_API_KEY="${telegram_api_key}"
       Restart=never
 
       [Install]
-      WantedBy=multi-user.target
+      WantedBy=cloud-init.target
 runcmd:
   - systemctl daemon-reload
   - systemctl restart sshd
-  - systemctl enable termination-handler.service
+  - systemctl enable --now termination-handler.service
   - sudo sysctl -p /etc/sysctl.d/99-tailscale.conf
   - sudo tailscale up --ssh --auth-key "${tailnet_auth_key}"
   - sudo ufw allow in on tailscale0
