@@ -22,9 +22,7 @@ Cloud-init will do the following:
 - configure SSH for use with ssh-keys only
 - setup the development environment by using the [cloud-script.sh](./cloud-script.sh)
 
-Once cloud-init has finished, the device is available in your tailnet as `tevbox-XXX`. You can ssh into it form any tailscale-enabled device without any further authentication or on it's public IP with your SSH-key. All that was configured via the script should be available to you to start coding. You will now that the instance is ready when you get a Notification on your set notification channel.
-
-The github action doesn't track state, so you must manually delete the instance when it's no longer needed. But the instance will remind you of this.
+Once cloud-init has finished, the device is available in your tailnet as `tevbox-XXX`. You can ssh into it form any tailscale-enabled device without any further authentication or on it's public IP with your SSH-key. All that was configured via the script should be available to you to start coding. You will now that the instance is ready when the Github Action has finished.
 
 ### Permannent secrets
 
@@ -35,7 +33,6 @@ For this solution to work we need some permanent things:
   - a security group named `unrestricted` in the openstack project that does exactly what it's name says
 - A tailscale API key to generate tailnet keys saved as repository secret
 - This repo holding the source-code
-- A Notification channel (for me it's a telegram bot) -> the token needs to be saved as repository secret as well
 
 ## Open Ideas
 

@@ -1,0 +1,25 @@
+name: Deploy standard
+
+on:
+  workflow_dispatch:
+
+jobs:
+  terraform:
+    name: "Terraform Run"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.6
+      - name: Terraform Init
+        id: init
+        run: cd standard && terraform init
+      - name: Terraform Apply
+        env: 
+          TF_VAR_openstack_token: ${{ secrets.TF_VAR_openstack_token }}
+          TF_VAR_openstack_user: ${{ secrets.TF_VAR_openstack_user }}
+          TF_VAR_tailscale_api_key: ${{ secrets.TF_VAR_tailscale_api_key }}
+        run: cd standard && terraform apply -auto-approve -input=false

@@ -7,7 +7,7 @@ users:
     groups: sudo
     sudo: ALL=(ALL) NOPASSWD:ALL # Allow any operations using sudo
     gecos: "It's me! Technat"
-    lock_passwd: true
+    lock_passwd: false
     shell: /bin/bash
     ssh_authorized_keys:
       - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJov21J2pGxwKIhTNPHjEkDy90U8VJBMiAodc2svmnFC cardno:000618187880
@@ -25,6 +25,7 @@ packages:
   - wget
   - curl
   - ufw
+  - code
   - dnsutils
   - tailscale
 
@@ -48,26 +49,9 @@ write_files:
       AcceptEnv LANG LC_*
       Subsystem    sftp    /usr/lib/openssh/sftp-server
       Include /etc/ssh/sshd_config.d/*.conf
-  - path: /etc/systemd/system/termination-handler.service
-    content: |
-      [Unit]
-      Description=Handle instance termination
-      Wants=network-online.target
-      After=cloud-final.service
-
-      [Service]
-      User=root
-      WorkingDirectory=/opt/termination-handler/
-      ExecStart=go run main.go
-      Environment=TELEGRAM_API_KEY="${telegram_api_key}"
-      Restart=never
-
-      [Install]
-      WantedBy=cloud-init.target
 runcmd:
   - systemctl daemon-reload
   - systemctl restart sshd
-  - systemctl enable --now termination-handler.service
   - sudo sysctl -p /etc/sysctl.d/99-tailscale.conf
   - sudo tailscale up --ssh --auth-key "${tailnet_auth_key}"
   - sudo ufw allow in on tailscale0
