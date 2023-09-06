@@ -17,9 +17,10 @@ We use a fire & forget apoproach with Github actions and Terraform. There's a Te
 
 Cloud-init will do the following:
 - create a user named `technat`
+- install some commong debugging packages
 - install and configure tailscale (so that in the end the device is connected to your tailnet)
 - enable and configure UFW (since the instance is public)
-- configure SSH for use with ssh-keys only
+- configure the openssh-server
 - setup the development environment by using the [cloud-script.sh](./cloud-script.sh)
 
 Once cloud-init has finished, the device is available in your tailnet as `tevbox-XXX`. You can ssh into it form any tailscale-enabled device without any further authentication or on it's public IP with your SSH-key. All that was configured via the script should be available to you to start coding. You will now that the instance is ready when the Github Action has finished.
@@ -28,7 +29,6 @@ Once cloud-init has finished, the device is available in your tailnet as `tevbox
 
 For this solution to work we need some permanent things:
 - an Openstack project with:
-  - cost control (budget alerts or so)
   - an application credential saved as repository secrets
   - a security group named `unrestricted` in the openstack project that does exactly what it's name says
 - A tailscale API key to generate tailnet keys saved as repository secret
@@ -36,7 +36,5 @@ For this solution to work we need some permanent things:
 
 ## Open Ideas
 
-Some things to improve:
-- [ ] Finish configuring the instance (currently it's a blank instance, some tools would be cool)
-- [ ] Imform the user about the running instance using a cronjob that executes a curl against Telegram's API
-- [ ] Note: an update to the cloud_init file won't do anything since recreation of the tailnet_key is currently not properly handled (https://github.com/tailscale/terraform-provider-tailscale/issues/144)
+- [ ] Install and setup [code-server](https://coder.com/docs/code-server/latest) automatically
+- [ ] Provide an easy way to destroy the instance once it's no longer needed (maybe a script that curls openstack API's if the user want's it)

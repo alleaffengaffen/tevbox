@@ -49,6 +49,11 @@ resource "tailscale_tailnet_key" "bootstrap" {
   tags          = ["tag:funnel"]
 }
 
+data "tailscale_device" "tevbox" {
+  name     = "tevbox-${random_integer.count.result}.crocodile-bee.ts.net"
+  wait_for = "300s"
+}
+
 ############
 # Variables
 ############
@@ -62,7 +67,6 @@ variable "instance_flavor" {
   type        = string
   description = "Size of the instance to create"
   default     = "a1-ram2-disk20-perf1"
-
 }
 
 variable "openstack_token" {
