@@ -26,7 +26,6 @@ packages:
   - wget
   - curl
   - ufw
-  - code
   - dnsutils
   - tailscale
 
