@@ -21,9 +21,12 @@ Cloud-init will do the following:
 - install and configure tailscale (so that in the end the device is connected to your tailnet)
 - enable and configure UFW (since the instance is public)
 - configure the openssh-server
+- configure the openstack-client with global env vars
 - setup the development environment by using the [cloud-script.sh](./cloud-script.sh)
 
 Once cloud-init has finished, the device is available in your tailnet as `tevbox-XXX`. You can ssh into it form any tailscale-enabled device without any further authentication or on it's public IP with your SSH-key. All that was configured via the script should be available to you to start coding. You will now that the instance is ready when the Github Action has finished.
+
+You can see the details for the instance in the output of the Github Action. To destroy the instance simply run `destroy-machine.sh` on the instance as `technat`.
 
 ### Permannent secrets
 

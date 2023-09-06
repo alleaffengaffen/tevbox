@@ -28,6 +28,7 @@ packages:
   - ufw
   - dnsutils
   - tailscale
+  - python3-openstackclient
 
 write_files:
   - path: /etc/sysctl.d/99-tailscale.conf
@@ -49,6 +50,29 @@ write_files:
       AcceptEnv LANG LC_*
       Subsystem    sftp    /usr/lib/openssh/sftp-server
       Include /etc/ssh/sshd_config.d/*.conf
+  - path: /etc/environment
+    content: |
+      OS_AUTH_TYPE="v3applicationcredential"
+      OS_AUTH_URL="https://api.pub1.infomaniak.cloud/identity"
+      OS_IDENTITY_API_VERSION=3
+      OS_REGION_NAME="dc3-a"
+      OS_INTERFACE="public"
+      OS_APPLICATION_CREDENTIAL_ID="${os_secret_id}"
+      OS_APPLICATION_CREDENTIAL_SECRET="${os_secret_key}"
+  - path: /usr/local/bin/destroy-machine.sh
+    permissions: "0755"
+    content: |
+      #!/bin/bash
+      export OS_AUTH_TYPE=v3applicationcredential
+      export OS_AUTH_URL=https://api.pub1.infomaniak.cloud/identity
+      export OS_IDENTITY_API_VERSION=3
+      export OS_REGION_NAME="dc3-a"
+      export OS_INTERFACE=public
+      export OS_APPLICATION_CREDENTIAL_ID=${os_secret_id}
+      export OS_APPLICATION_CREDENTIAL_SECRET=${os_secret_key}
+      sudo tailscale logout
+      sleep 5s
+      openstack server delete ${hostname} && openstack application credential delete ${hostname}
 runcmd:
   - systemctl restart sshd
   - sudo sysctl -p /etc/sysctl.d/99-tailscale.conf

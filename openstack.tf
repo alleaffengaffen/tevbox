@@ -1,8 +1,11 @@
 ############
 # Instance
 ############
+locals {
+  hostname = "tevbox-${random_integer.count.result}"
+}
 resource "openstack_compute_instance_v2" "tevbox" {
-  name                = "tevbox-${random_integer.count.result}"
+  name                = local.hostname
   image_id            = "a103ffce-9165-42d7-9c1f-ba0fe774fac5" # Ubuntu 22.04 LTS Jammy Jellyfish
   flavor_name         = var.instance_flavor
   security_groups     = ["unrestricted"]
@@ -37,9 +40,20 @@ data "cloudinit_config" "tevbox" {
     content = templatefile("${path.module}/cloud-config.yaml", {
       tailnet_auth_key = tailscale_tailnet_key.bootstrap.key
       user_password    = var.user_password
+      hostname         = local.hostname
+      os_secret_id     = openstack_identity_application_credential_v3.tevbox.id
+      os_secret_key    = openstack_identity_application_credential_v3.tevbox.secret
     })
   }
 }
+
+resource "openstack_identity_application_credential_v3" "tevbox" {
+  name         = local.hostname
+  description  = "${local.hostname} identity"
+  unrestricted = true
+  expires_at   = timeadd(timestamp(), "2160h") # 90 days
+}
+
 
 resource "tailscale_tailnet_key" "bootstrap" {
   ephemeral     = false
@@ -50,8 +64,10 @@ resource "tailscale_tailnet_key" "bootstrap" {
 }
 
 data "tailscale_device" "tevbox" {
-  name     = "tevbox-${random_integer.count.result}.crocodile-bee.ts.net"
+  name     = "${local.hostname}.crocodile-bee.ts.net"
   wait_for = "300s"
+
+  depends_on = [openstack_compute_instance_v2.tevbox]
 }
 
 ############
@@ -66,7 +82,7 @@ output "public_ipv6" {
 }
 
 output "hostname" {
-  value = "tevbox-${random_integer.count.result}"
+  value = local.hostname
 }
 
 output "tailscale_addresses" {
