@@ -4,8 +4,8 @@
 resource "openstack_compute_instance_v2" "tevbox" {
   name                = "tevbox-${random_integer.count.result}"
   image_id            = "a103ffce-9165-42d7-9c1f-ba0fe774fac5" # Ubuntu 22.04 LTS Jammy Jellyfish
-  flavor_name         = "a1-ram2-disk20-perf1"
-  security_groups     = ["unrestricted"] 
+  flavor_name         = var.instance_flavor
+  security_groups     = ["unrestricted"]
   user_data           = data.cloudinit_config.tevbox.rendered
   stop_before_destroy = true
 
@@ -36,6 +36,7 @@ data "cloudinit_config" "tevbox" {
 
     content = templatefile("${path.module}/cloud-config.yaml", {
       tailnet_auth_key = tailscale_tailnet_key.bootstrap.key
+      user_password    = var.user_password
     })
   }
 }
@@ -51,6 +52,19 @@ resource "tailscale_tailnet_key" "bootstrap" {
 ############
 # Variables
 ############
+variable "user_password" {
+  type        = string
+  sensitive   = true
+  description = "Password for user created by cloud-init"
+}
+
+variable "instance_flavor" {
+  type        = string
+  description = "Size of the instance to create"
+  default     = "a1-ram2-disk20-perf1"
+
+}
+
 variable "openstack_token" {
   type      = string
   sensitive = true

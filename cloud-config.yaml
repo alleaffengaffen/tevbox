@@ -8,6 +8,7 @@ users:
     sudo: ALL=(ALL) NOPASSWD:ALL # Allow any operations using sudo
     gecos: "It's me! Technat"
     lock_passwd: false
+    passwd: ${user_password}
     shell: /bin/bash
     ssh_authorized_keys:
       - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJov21J2pGxwKIhTNPHjEkDy90U8VJBMiAodc2svmnFC cardno:000618187880
