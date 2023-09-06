@@ -55,6 +55,33 @@ data "tailscale_device" "tevbox" {
 }
 
 ############
+# Outputs
+############
+output "public_ipv4" {
+  value = openstack_compute_instance_v2.tevbox.access_ip_v4
+}
+
+output "public_ipv6" {
+  value = openstack_compute_instance_v2.tevbox.access_ip_v6
+}
+
+output "hostname" {
+  value = "tevbox-${random_integer.count.result}"
+}
+
+output "tailscale_addresses" {
+  value = data.tailscale_device.tevbox.addresses
+}
+
+output "username" {
+  value = "technat"
+}
+
+output "password" {
+  value = nonsensitive(var.user_password)
+}
+
+############
 # Variables
 ############
 variable "user_password" {
