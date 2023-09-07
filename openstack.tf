@@ -48,23 +48,10 @@ data "cloudinit_config" "tevbox" {
 }
 
 resource "openstack_identity_application_credential_v3" "tevbox" {
-  name        = local.hostname
-  description = "${local.hostname} identity"
-  expires_at  = timeadd(timestamp(), "2160h") # 90 days
-
-  # grant permissions to delete compute related things
-  access_rules {
-    path    = "/v2.1/servers/**"
-    service = "compute"
-    method  = "DELETE"
-  }
-
-  # grant permissions to delete identity related things
-  access_rules {
-    path    = "/v3/users/**"
-    service = "identity"
-    method  = "DELETE"
-  }
+  name         = local.hostname
+  description  = "${local.hostname} identity"
+  unrestricted = true                          # currently the best way to ensure everything get's deleted properly
+  expires_at   = timeadd(timestamp(), "2160h") # 90 days
 }
 
 
