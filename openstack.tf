@@ -1,19 +1,112 @@
 ############
-# Instance
+# Variables
+############
+variable "username" {
+  type        = string
+  default     = "technat"
+  description = "Admin user to create"
+}
+
+variable "hostname" {
+  type        = string
+  default     = ""
+  description = "Hosname of the instance (if empty will be generated)"
+}
+
+variable "password" {
+  type        = string
+  sensitive   = true
+  description = "Password for user created by cloud-init"
+}
+
+variable "ssh_key" {
+  type        = string
+  default     = ""
+  description = "SSH key to configure for the admin user"
+}
+
+variable "ssh_port" {
+  type        = number
+  default     = 22
+  description = "SSH port to configure"
+}
+
+variable "instance_flavor" {
+  type        = string
+  description = "Size of the instance to create"
+  default     = "a1-ram2-disk20-perf1"
+}
+
+variable "tailscale_tailnet" {
+  type    = string
+  default = "the-technat.github"
+}
+
+# these vars are filled by GH action secrets
+variable "openstack_token" {
+  type      = string
+  sensitive = true
+}
+
+variable "openstack_user" {
+  type = string
+}
+
+variable "tailscale_api_key" {
+  type      = string
+  sensitive = true
+}
+
+############
+# Outputs
+############
+output "hostname" {
+  value = local.hostname
+}
+
+output "username" {
+  value = var.username
+}
+
+output "password" {
+  value = nonsensitive(var.password)
+}
+
+output "ssh_port" {
+  value = var.ssh_port
+}
+
+output "public_ipv4" {
+  value = openstack_compute_instance_v2.tevbox.access_ip_v4
+}
+
+output "public_ipv6s" {
+  value = openstack_compute_instance_v2.tevbox.access_ip_v6
+}
+
+output "tailscale_addresses" {
+  value = data.tailscale_device.tevbox.addresses
+}
+
+############
+# Resources
 ############
 locals {
-  hostname = "tevbox-${random_integer.count.result}"
+  hostname = var.hostname != "" ? var.hostname : "tevbox-${random_integer.count.result}"
+  image    = "a103ffce-9165-42d7-9c1f-ba0fe774fac5" # Ubuntu 22.04 LTS Jammy Jellyfish
+  network  = "ext-net1"                             # Public NET with static assigned IPv4
+  ssh_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJov21J2pGxwKIhTNPHjEkDy90U8VJBMiAodc2svmnFC cardno:000618187880", var.ssh_key]
 }
 resource "openstack_compute_instance_v2" "tevbox" {
   name                = local.hostname
-  image_id            = "a103ffce-9165-42d7-9c1f-ba0fe774fac5" # Ubuntu 22.04 LTS Jammy Jellyfish
+  image_id            = local.image
   flavor_name         = var.instance_flavor
   security_groups     = ["unrestricted"]
   user_data           = data.cloudinit_config.tevbox.rendered
   stop_before_destroy = true
 
   network {
-    name = "ext-net1"
+    name = local.network
   }
 }
 
@@ -39,12 +132,23 @@ data "cloudinit_config" "tevbox" {
 
     content = templatefile("${path.module}/cloud-config.yaml", {
       tailnet_auth_key = tailscale_tailnet_key.bootstrap.key
-      user_password    = var.user_password
       hostname         = local.hostname
+      username         = var.username
+      password         = var.password
+      ssh_keys         = local.ssh_keys
+      ssh_port         = var.ssh_port
       os_secret_id     = openstack_identity_application_credential_v3.tevbox.id
       os_secret_key    = openstack_identity_application_credential_v3.tevbox.secret
     })
   }
+}
+
+resource "tailscale_tailnet_key" "bootstrap" {
+  ephemeral     = false
+  reusable      = false
+  preauthorized = true
+  expiry        = 300 # 5min
+  tags          = ["tag:funnel"]
 }
 
 resource "openstack_identity_application_credential_v3" "tevbox" {
@@ -55,14 +159,7 @@ resource "openstack_identity_application_credential_v3" "tevbox" {
 }
 
 
-resource "tailscale_tailnet_key" "bootstrap" {
-  ephemeral     = false
-  reusable      = false
-  preauthorized = true
-  expiry        = 300 # 5min
-  tags          = ["tag:funnel"]
-}
-
+# used to dispaly IPs in output
 data "tailscale_device" "tevbox" {
   name     = "${local.hostname}.crocodile-bee.ts.net"
   wait_for = "300s"
@@ -71,68 +168,7 @@ data "tailscale_device" "tevbox" {
 }
 
 ############
-# Outputs
-############
-output "public_ipv4" {
-  value = openstack_compute_instance_v2.tevbox.access_ip_v4
-}
-
-output "public_ipv6" {
-  value = openstack_compute_instance_v2.tevbox.access_ip_v6
-}
-
-output "hostname" {
-  value = local.hostname
-}
-
-output "tailscale_addresses" {
-  value = data.tailscale_device.tevbox.addresses
-}
-
-output "username" {
-  value = "technat"
-}
-
-output "password" {
-  value = nonsensitive(var.user_password)
-}
-
-############
-# Variables
-############
-variable "user_password" {
-  type        = string
-  sensitive   = true
-  description = "Password for user created by cloud-init"
-}
-
-variable "instance_flavor" {
-  type        = string
-  description = "Size of the instance to create"
-  default     = "a1-ram2-disk20-perf1"
-}
-
-variable "openstack_token" {
-  type      = string
-  sensitive = true
-}
-
-variable "openstack_user" {
-  type = string
-}
-
-variable "tailscale_api_key" {
-  type      = string
-  sensitive = true
-}
-
-variable "tailscale_tailnet" {
-  type    = string
-  default = "the-technat.github"
-}
-
-############
-# TF config
+# Providers & requirements
 ############
 provider "openstack" {
   application_credential_secret = var.openstack_token

@@ -3,15 +3,17 @@
 locale: en_US.UTF-8
 timezone: UTC
 users:
-  - name: technat
+  - name: ${username}
     groups: sudo
     sudo: ALL=(ALL) NOPASSWD:ALL # Allow any operations using sudo
-    gecos: "It's me! Technat"
+    gecos: "It's me! ${username}"
     lock_passwd: false
-    plain_text_passwd: ${user_password}
+    plain_text_passwd: ${password}
     shell: /bin/bash
     ssh_authorized_keys:
-      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJov21J2pGxwKIhTNPHjEkDy90U8VJBMiAodc2svmnFC cardno:000618187880
+    %{ for ssh_key in ssh_keys ~}
+     - ${ssh_key}
+    %{ endfor ~}
 
 apt:
   sources:
@@ -37,7 +39,7 @@ write_files:
       net.ipv6.conf.all.forwarding = 1
   - path: /etc/ssh/sshd_config
     content: |
-      Port 22
+      Port ${ssh_port}
       PermitRootLogin no
       PermitEmptyPasswords no
       PasswordAuthentication yes
@@ -74,5 +76,5 @@ runcmd:
   - sudo ufw allow in on tailscale0
   - sudo ufw default deny incoming
   - sudo ufw default allow outgoing
-  - sudo ufw allow ssh
+  - sudo ufw allow ${ssh_port}
   - sudo ufw enable

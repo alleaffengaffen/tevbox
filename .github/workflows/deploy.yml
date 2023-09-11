@@ -3,6 +3,25 @@ name: Create new instance
 on:
   workflow_dispatch:
     inputs:
+      hostname:
+        type: string
+        description: Override the hostname of the instance
+        default: ""
+      username: 
+        type: string
+        description: Username of admin user
+        default: technat
+      password:
+        type: string
+        description: Password of user 
+        required: true
+      ssh_port: 
+        type: string
+        default: '22'
+        description: SSH port the instance is rechable from
+      ssh_key: 
+        type: string
+        description: SSH key to configure for the admin user
       flavor:
         type: choice
         description: Instance flavor 
@@ -15,10 +34,6 @@ on:
         - a4-ram8-disk50-perf1
         - a4-ram16-disk20-perf1
         - a4-ram16-disk50-perf1
-      password:
-        type: string
-        description: Password of user technat
-        required: true
 
 jobs:
   terraform:
@@ -40,5 +55,9 @@ jobs:
           TF_VAR_openstack_user: ${{ secrets.TF_VAR_openstack_user }}
           TF_VAR_tailscale_api_key: ${{ secrets.TF_VAR_tailscale_api_key }}
           TF_VAR_instance_flavor: ${{ github.event.inputs.flavor }}
-          TF_VAR_user_password: ${{ github.event.inputs.password }}
+          TF_VAR_username: ${{ github.event.inputs.username }}
+          TF_VAR_password: ${{ github.event.inputs.password }}
+          TF_VAR_ssh_port: ${{ github.event.inputs.ssh_port }}
+          TF_VAR_ssh_key: ${{ github.event.inputs.ssh_key }}
+          TF_VAR_hostname: ${{ github.event.inputs.hostname }}
         run: terraform apply -auto-approve -input=false
