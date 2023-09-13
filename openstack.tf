@@ -37,11 +37,6 @@ variable "instance_flavor" {
   default     = "a1-ram2-disk20-perf1"
 }
 
-variable "tailscale_tailnet" {
-  type    = string
-  default = "the-technat.github"
-}
-
 # these vars are filled by GH action secrets
 variable "openstack_token" {
   type      = string
@@ -92,10 +87,12 @@ output "tailscale_addresses" {
 # Resources
 ############
 locals {
-  hostname = var.hostname != "" ? var.hostname : "tevbox-${random_integer.count.result}"
-  image    = "a103ffce-9165-42d7-9c1f-ba0fe774fac5" # Ubuntu 22.04 LTS Jammy Jellyfish
-  network  = "ext-net1"                             # Public NET with static assigned IPv4
-  ssh_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJov21J2pGxwKIhTNPHjEkDy90U8VJBMiAodc2svmnFC cardno:000618187880", var.ssh_key]
+  tailnet_domain = "little-cloud.ts.net"
+  tailnet        = "alleaffengaffen.org.github"
+  hostname       = var.hostname != "" ? var.hostname : "tevbox-${random_integer.count.result}"
+  image          = "a103ffce-9165-42d7-9c1f-ba0fe774fac5" # Ubuntu 22.04 LTS Jammy Jellyfish
+  network        = "ext-net1"                             # Public NET with static assigned IPv4
+  ssh_keys       = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJov21J2pGxwKIhTNPHjEkDy90U8VJBMiAodc2svmnFC cardno:000618187880", var.ssh_key]
 }
 resource "openstack_compute_instance_v2" "tevbox" {
   name                = local.hostname
@@ -123,7 +120,9 @@ data "cloudinit_config" "tevbox" {
     filename     = "cloud-script.sh"
     content_type = "text/x-shellscript"
 
-    content = file("${path.module}/cloud-script.sh")
+    content = templatefile("${path.module}/cloud-script.sh", {
+      username = var.username
+    })
   }
 
   part {
@@ -161,7 +160,7 @@ resource "openstack_identity_application_credential_v3" "tevbox" {
 
 # used to dispaly IPs in output
 data "tailscale_device" "tevbox" {
-  name     = "${local.hostname}.crocodile-bee.ts.net"
+  name     = "${local.hostname}.${local.tailnet_domain}"
   wait_for = "300s"
 
   depends_on = [openstack_compute_instance_v2.tevbox]
@@ -179,7 +178,7 @@ provider "openstack" {
 
 provider "tailscale" {
   api_key = var.tailscale_api_key # expires every 90 days
-  tailnet = var.tailscale_tailnet # created by sign-up via Github
+  tailnet = local.tailnet         # created by sign-up via Github
 }
 
 terraform {
