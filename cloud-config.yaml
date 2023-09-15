@@ -56,9 +56,10 @@ write_files:
       AcceptEnv LANG LC_*
       Subsystem    sftp    /usr/lib/openssh/sftp-server
       Include /etc/ssh/sshd_config.d/*.conf
-  - path: /etc/environment
+  - path: /etc/profile
+    append: true
     content: |
-      HCLOUD_TOKEN="${hcloud_token}"
+      export HCLOUD_TOKEN="${hcloud_token}"
   - path: /usr/local/bin/destroy-machine
     permissions: "0755"
     content: |

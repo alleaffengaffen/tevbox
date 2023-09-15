@@ -42,6 +42,5 @@ For the tevbox project to work, it's important to have some static things:
 
 ## Open Ideas
 
-- [ ] Fix HCLOUD_TOKEN not beeing propagated correctly
 - [ ] Run GH workflow every evening checking for left-over servers and sending you a notification 
 - [ ] Make DNS record optional (since you have to cleanup it manually anyway) or check if Terraform can override the already existing record 
