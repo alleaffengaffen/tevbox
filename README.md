@@ -24,6 +24,12 @@ The workflow for creating a new VM is simple
   - Cloud-init executes everything as root, so your shell customization and other things have to be done manually
 - Once the workflow has finished, the server is up & running, you can get the details of it in the last step of the workflow
 
+Here are some things to note when working on the machine:
+- `destroy-machine` destroyes the machine, it's DNS record and removes it from the tailnet
+- the tailscale funnel is used for the code-server
+- the code-server is running for your specific user and accessible over the funnel
+- ufw firewall is enabled, blocking all incoming traffic on the public IP except SSH -> you need to open ports you want to use
+
 Please note that since Terraform does not track it's state, the machine is unamanged from now on. You must manually delete / stop / restart it from the Hetzner Console. For some extra convenience there's a commaned called `destroy-machine` that will terminate the instance once executed.
 
 ## Preconditions

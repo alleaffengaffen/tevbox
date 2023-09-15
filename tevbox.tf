@@ -123,7 +123,8 @@ locals {
   tailnet         = "alleaffengaffen.org.github"
   hostname        = var.hostname != "" ? var.hostname : "tevbox-${random_integer.count.result}"
   domain          = "technat.dev"
-  ssh_keys        = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJov21J2pGxwKIhTNPHjEkDy90U8VJBMiAodc2svmnFC cardno:000618187880", var.ssh_key]
+  yubikey         = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJov21J2pGxwKIhTNPHjEkDy90U8VJBMiAodc2svmnFC cardno:000618187880"
+  ssh_keys        = var.ssh_key == "" ? [local.yubikey] : [local.yubikey, var.ssh_key]
   root_ssh_key_id = "rootkey" # only give the yubikey as ssh key for the root user (just to prevent the mail which sends you the root password)
 }
 resource "hcloud_server" "tevbox" {

@@ -25,7 +25,7 @@ on:
         description: SSH port to configure
       type:
         type: choice
-        default: cx11
+        default: cax11
         options: 
           - cx11
           - cpx11

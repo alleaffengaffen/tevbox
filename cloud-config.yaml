@@ -62,11 +62,13 @@ write_files:
     content: |
       #!/bin/sh
       # first grab the ID of our DNS record and delete this one
-      recordID=$(curl -sSL "https://dns.hetzner.com/api/v1/records?zone_id=${zone_id}" -H 'Auth-API-Token: ${hetzner_dns_token}'  | jq '.records[] | select(.name=="${hostname}") | .id')
+      recordID=$(curl -sSL "https://dns.hetzner.com/api/v1/records?zone_id=${zone_id}" -H 'Auth-API-Token: ${hetzner_dns_token}'  | jq '.records[] | select(.name=="${hostname}") | .id' | tr -d "\"")
       curl -X "DELETE" "https://dns.hetzner.com/api/v1/records/$recordID" -H 'Auth-API-Token: ${hetzner_dns_token}'
       
       # then dispatch the deletion of the server 2s after we have logged out of our tailnet
       (sleep 2 && HCLOUD_TOKEN=${hcloud_token} hcloud server delete ${hostname}) & 
+      sudo tailscale funnel 443 off
+      sudo tailscale serve reset
       sudo tailscale logout
 runcmd:
   - systemctl restart sshd
