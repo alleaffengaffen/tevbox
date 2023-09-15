@@ -64,9 +64,8 @@ write_files:
     permissions: "0755"
     content: |
       #!/bin/sh
+      (sleep 2 && hcloud server delete ${hostname}) &
       sudo tailscale logout
-      sleep 5s
-      hcloud server delete ${hostname}
 runcmd:
   - systemctl restart sshd
   - sudo sysctl -p /etc/sysctl.d/99-tailscale.conf
