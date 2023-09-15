@@ -187,13 +187,15 @@ data "cloudinit_config" "tevbox" {
     content_type = "text/cloud-config"
 
     content = templatefile("${path.module}/cloud-config.yaml", {
-      hostname         = local.hostname
-      username         = var.username
-      password         = var.password
-      ssh_keys         = local.ssh_keys
-      ssh_port         = var.ssh_port
-      hcloud_token     = var.hcloud_token
-      tailnet_auth_key = tailscale_tailnet_key.bootstrap.key
+      hostname          = local.hostname
+      username          = var.username
+      password          = var.password
+      ssh_keys          = local.ssh_keys
+      ssh_port          = var.ssh_port
+      hcloud_token      = var.hcloud_token
+      hetzner_dns_token = var.hetzner_dns_token
+      zone_id           = data.hetznerdns_zone.dns_zone.id
+      tailnet_auth_key  = tailscale_tailnet_key.bootstrap.key
     })
   }
 }
