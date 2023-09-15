@@ -31,7 +31,7 @@ Please note that since Terraform does not track it's state, the machine is unama
 For the tevbox project to work, it's important to have some static things:
 - A Hetzner project with:
   - A cost limit + notification
-  - An API Token for the project that is allowed to read & write
+  - An API Token for the project that is allowed to read & write -> since this token is shared with all servers, it would make sense to rotate it every now and then
   - An SSH key already created to prevent mails with root passwords named "rootkey"
 - A Hetzner DNS API Token 
 - A tailnet with:
