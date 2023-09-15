@@ -7,8 +7,12 @@ users:
     groups: sudo
     sudo: ALL=(ALL) NOPASSWD:ALL # Allow any operations using sudo
     gecos: "It's me! ${username}"
+    %{ if password == "" }
+    lock_passwd: true
+    %{ else }
     lock_passwd: false
     plain_text_passwd: ${password}
+    %{ endif }
     shell: /bin/bash
     ssh_authorized_keys:
     %{ for ssh_key in ssh_keys ~}
@@ -30,7 +34,7 @@ packages:
   - ufw
   - dnsutils
   - tailscale
-  - python3-openstackclient
+  - hcloud-cli
 
 write_files:
   - path: /etc/sysctl.d/99-tailscale.conf
@@ -54,21 +58,14 @@ write_files:
       Include /etc/ssh/sshd_config.d/*.conf
   - path: /etc/environment
     content: |
-      OS_AUTH_TYPE=v3applicationcredential
-      OS_AUTH_URL="https://api.pub1.infomaniak.cloud/identity"
-      OS_IDENTITY_API_VERSION=3
-      OS_REGION_NAME="dc3-a"
-      OS_INTERFACE=public
-      OS_APPLICATION_CREDENTIAL_ID="${os_secret_id}"
-      OS_APPLICATION_CREDENTIAL_SECRET="${os_secret_key}"
+      HCLOUD_TOKEN=${hcloud_token}
   - path: /usr/local/bin/destroy-machine
     permissions: "0755"
     content: |
       #!/bin/sh
       sudo tailscale logout
       sleep 5s
-      (openstack server delete ${hostname}) &
-      (openstack application credential delete ${hostname}) &
+      hcloud server delete ${hostname}
 runcmd:
   - systemctl restart sshd
   - sudo sysctl -p /etc/sysctl.d/99-tailscale.conf

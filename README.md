@@ -6,36 +6,37 @@ Technat's Development Box in the cloud
 
 From time to time we need a development environment on the go. While there are many solutions out there, I prefer to setup my own. This has multiple reasons:
 - performance of cloud-based IDEs is often rather poor or insufficient (in my personal experience)
-- control of the network stack is often not given (e.g no public IP or direct access to the machines NIC)
-- they usually stop working when you are inactive for some time
+- control of the network stack is often not given (e.g no public IP or direct access to the machines NIC which is sometimes nice to have)
+- they usually stop working when you are inactive for some time (e.g they are session-based)
 
 So this repo provides a solution how you can quickly create a fresh cloud server ready for you to code and tinker on.
 
-## How it works
+## Solution design
 
-We use a fire & forget apoproach with Github actions and Terraform. There's a Terraform file called [openstack.tf](./openstack.tf) in this repo, that spins up a new instance on Openstack whenever Terraform is triggered. The instance will have the latest LTS-release of Ubuntu & a public-IP. In order to further configure the instance, cloud-init is used.
+In general: a tevbox is just a dead-simple VPS with a mainstream Linux Distro and some development tools. In my case I'm using [Hetzner](http://hetzner.de/) for this job as their machines are very affordable.
 
-Cloud-init will do the following:
-- create a user named `technat`
-- install some commong debugging packages
-- install and configure tailscale (so that in the end the device is connected to your tailnet)
-- enable and configure UFW (since the instance is public)
-- configure the openssh-server
-- setup the `destroy-machine` command
-- setup the development environment by using the [cloud-script.sh](./cloud-script.sh)
+The workflow for creating a new VM is simple
+- Head over to the Actions tab of this repository and manually dispatch the workflow "Create new instance".
+  - You are asked certain parameters which are sometimes mandatory and sometimes just to allow for customization
+- The workflow will pass these variables 1:1 to [Terraform](https://www.terraform.io/) which in turn creates the server
+  - Terraform is stateless, so we fire and forget which makes the machine unmanaged afterwards
+- Terraform uses cloud-init to bootstrap the server at first boot
+  - Cloud-init executes everything as root, so your shell customization and other things have to be done manually
+- Once the workflow has finished, the server is up & running, you can get the details of it in the last step of the workflow
 
-Once cloud-init has finished, the device is available in your tailnet as `tevbox-XXX`. You can ssh into it form any tailscale-enabled device without any further authentication or on it's public IP with your SSH-key. All that was configured via the script should be available to you to start coding. You will now that the instance is ready when the Github Action has finished.
+Please note that since Terraform does not track it's state, the machine is unamanged from now on. You must manually delete / stop / restart it from the Hetzner Console. For some extra convenience there's a commaned called `destroy-machine` that will terminate the instance once executed.
 
-You can see the details for the instance in the output of the Github Action. To destroy the instance simply run `destroy-machine` on the instance as `technat`.
+## Preconditions
 
-### Permannent secrets
-
-For this solution to work we need some permanent things:
-- an Openstack project with:
-  - an application credential saved as repository secrets
-  - a security group named `unrestricted` in the openstack project that does exactly what it's name says
-- A tailscale API key to generate tailnet keys saved as repository secret
+For the tevbox project to work, it's important to have some static things:
+- A Hetzner project with:
+  - An API Token for the project that is allowed to read & write
+  - An SSH key already created to prevent mails with root passwords named "rootkey"
+- A Hetzner DNS API Token 
+- A tailscale API key to generate tailnet keys saved as repository secret -> note that this key will expire in 90 days 
 - This repo holding the source-code
+
+**Note:** The API token for Hcloud is shared across all created machines in order to easily destroy them if needed.
 
 ## Open Ideas
 
