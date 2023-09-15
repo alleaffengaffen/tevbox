@@ -138,7 +138,17 @@ resource "hcloud_server" "tevbox" {
     ipv4_enabled = true
     ipv6_enabled = true
   }
-  user_data = data.cloudinit_config.tevbox.rendered
+  user_data = templatefile("${path.module}/cloud-config.yaml", {
+    hostname          = local.hostname
+    username          = var.username
+    password          = var.password
+    ssh_keys          = local.ssh_keys
+    ssh_port          = var.ssh_port
+    hcloud_token      = var.hcloud_token
+    hetzner_dns_token = var.hetzner_dns_token
+    zone_id           = data.hetznerdns_zone.dns_zone.id
+    tailnet_auth_key  = tailscale_tailnet_key.bootstrap.key
+  })
 }
 
 resource "hetznerdns_record" "tevbox" {
@@ -170,37 +180,6 @@ resource "random_integer" "count" {
 ############
 # Data Sources
 ############
-data "cloudinit_config" "tevbox" {
-  gzip          = false
-  base64_encode = false
-
-  part {
-    filename     = "cloud-script.sh"
-    content_type = "text/x-shellscript"
-
-    content = templatefile("${path.module}/cloud-script.sh", {
-      username = var.username
-    })
-  }
-
-  part {
-    filename     = "cloud-config.yaml"
-    content_type = "text/cloud-config"
-
-    content = templatefile("${path.module}/cloud-config.yaml", {
-      hostname          = local.hostname
-      username          = var.username
-      password          = var.password
-      ssh_keys          = local.ssh_keys
-      ssh_port          = var.ssh_port
-      hcloud_token      = var.hcloud_token
-      hetzner_dns_token = var.hetzner_dns_token
-      zone_id           = data.hetznerdns_zone.dns_zone.id
-      tailnet_auth_key  = tailscale_tailnet_key.bootstrap.key
-    })
-  }
-}
-
 data "tailscale_device" "tevbox" {
   name     = "${local.hostname}.${local.tailnet_domain}"
   wait_for = "300s"

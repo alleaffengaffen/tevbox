@@ -5,7 +5,7 @@ timezone: UTC
 users:
   - name: ${username}
     groups: sudo
-    sudo: ALL=(ALL) NOPASSWD:ALL # Allow any operations using sudo
+    sudo: "ALL=(ALL) NOPASSWD:ALL" # Allow any operations using sudo
     gecos: "It's me! ${username}"
     %{ if password == "" }
     lock_passwd: true
@@ -66,10 +66,8 @@ write_files:
       curl -X "DELETE" "https://dns.hetzner.com/api/v1/records/$recordID" -H 'Auth-API-Token: ${hetzner_dns_token}'
       
       # then dispatch the deletion of the server 2s after we have logged out of our tailnet
-      (sleep 2 && HCLOUD_TOKEN=${hcloud_token} hcloud server delete ${hostname}) & 
-      sudo tailscale funnel 443 off
-      sudo tailscale serve reset
-      sudo tailscale logout
+      (HCLOUD_TOKEN=${hcloud_token} hcloud server delete ${hostname}) & 
+      (sudo tailscale funnel 443 off && sudo tailscale serve reset && sudo tailscale logout) &
 runcmd:
   - systemctl restart sshd
   - sudo sysctl -p /etc/sysctl.d/99-tailscale.conf
@@ -79,7 +77,3 @@ runcmd:
   - sudo ufw default allow outgoing
   - sudo ufw allow ${ssh_port}
   - sudo ufw enable
-  - curl -fsSL https://code-server.dev/install.sh | sh
-  - sudo systemctl enable --now code-server@${username}
-  - sudo tailscale serve https / localhost:8080
-  - sudo tailscale funnel 443 on

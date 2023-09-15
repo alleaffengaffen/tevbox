@@ -27,7 +27,7 @@ The workflow for creating a new VM is simple
 Here are some things to note when working on the machine:
 - `destroy-machine` destroyes the machine, it's DNS record and removes it from the tailnet
 - the tailscale funnel is used for the code-server
-- the code-server is running for your specific user and accessible over the funnel
+- the code-server is running for your specific user and accessible over the funnel with the password of your username
 - ufw firewall is enabled, blocking all incoming traffic on the public IP except SSH -> you need to open ports you want to use
 
 Please note that since Terraform does not track it's state, the machine is unamanged from now on. You must manually delete / stop / restart it from the Hetzner Console. For some extra convenience there's a commaned called `destroy-machine` that will terminate the instance once executed.
