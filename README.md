@@ -48,3 +48,12 @@ For the tevbox project to work, it's important to have some static things:
 ## Open Ideas
 
 - [ ] Run GH workflow every evening checking for left-over servers and sending you a notification 
+- [ ] Install code-server with this snippet:
+```console
+curl -fsSL https://code-server.dev/install.sh | sh
+sudo systemctl enable --now code-server@${username}
+sudo tailscale serve https / localhost:8080
+sudo tailscale funnel 443 on
+sed -e -i 's/^password\:.*$/password\:${password}/g' /home/${username}/.config/code-server/config.yaml
+sudo systemctl restart code-server@${username}
+```
