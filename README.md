@@ -33,14 +33,15 @@ For the tevbox project to work, it's important to have some static things:
   - An API Token for the project that is allowed to read & write
   - An SSH key already created to prevent mails with root passwords named "rootkey"
 - A Hetzner DNS API Token 
-- A tailscale API key to generate tailnet keys saved as repository secret -> note that this key will expire in 90 days 
+- A tailnet with:
+  - A tailscale API key to generate tailnet keys saved as repository secret -> note that this key will expire in 90 days 
+  - At least a tag named `funnel` that adds the funnel attribute to the nodes
 - This repo holding the source-code
 
 **Note:** The API token for Hcloud is shared across all created machines in order to easily destroy them if needed.
 
 ## Open Ideas
 
-- [ ] Install and setup [code-server](https://coder.com/docs/code-server/latest) automatically + active tailscale funnel
 - [ ] Fix HCLOUD_TOKEN not beeing propagated correctly
 - [ ] Run GH workflow every evening checking for left-over servers and sending you a notification 
 - [ ] Make DNS record optional (since you have to cleanup it manually anyway) or check if Terraform can override the already existing record 
