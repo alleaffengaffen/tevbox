@@ -58,7 +58,7 @@ write_files:
       Include /etc/ssh/sshd_config.d/*.conf
   - path: /etc/environment
     content: |
-      HCLOUD_TOKEN=${hcloud_token}
+      HCLOUD_TOKEN="${hcloud_token}"
   - path: /usr/local/bin/destroy-machine
     permissions: "0755"
     content: |
