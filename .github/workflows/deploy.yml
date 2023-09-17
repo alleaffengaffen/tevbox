@@ -15,10 +15,6 @@ on:
         type: string
         default: ""
         description: Password for user created by cloud-init (empty means it's disabled)
-      ssh_key: 
-          type: string
-          default: ""
-          description: SSH key to configure for the admin user
       ssh_port: 
         type: string
         default: '22'
@@ -82,7 +78,7 @@ jobs:
           TF_VAR_hostname: ${{ github.event.inputs.hostname }}
           TF_VAR_username: ${{ github.event.inputs.username }}
           TF_VAR_password: ${{ github.event.inputs.password }}
-          TF_VAR_ssh_key: ${{ github.event.inputs.ssh_key }}
+          TF_VAR_github_user: ${{ github.actor }}
           TF_VAR_ssh_port: ${{ github.event.inputs.ssh_port }}
           TF_VAR_instance_type: ${{ github.event.inputs.type }}
           TF_VAR_flavor: ${{ github.event.inputs.flavor }}

@@ -1,0 +1,144 @@
+---
+- name: Tevbox Setup
+  hosts: all
+  # become: true
+  # become_user: root
+  gather_facts: true
+  vars:
+    username: ""
+    password: ""
+    github_user: ""
+    ssh_port: ""
+    ts_auth_key: ""
+  tasks:
+    # Note: we create this user at the very beginning to ensure we could log into the machine if something fails during the rest of the bootstrap process
+    - name: Create admin user
+      ansible.builtin.user:
+        name: "{{username}}"
+        comment: "{{username}}"
+        shell: /usr/bin/bash
+        home: "/home/{{ username }}"
+        groups: sudo
+        password: "{{ password | password_hash('sha512', 'salt') }}"
+    - name: Set authorized keys from Github for user
+      authorized_key:
+        user: "{{username}}"
+        key: "{{ lookup('url', \"https://github.com/{{ github_user }}.keys\", split_lines=False) }}"
+    - name: Allow passwordless sudo
+      lineinfile:
+        path: /etc/sudoers
+        state: present
+        regexp: "^%{{ item }}"
+        line: "%{{ item }} ALL=(ALL) NOPASSWD: ALL"
+        validate: "visudo -cf %s"
+      with_items:
+      - wheel
+      - sudo
+    - name: Configure sshd
+      lineinfile:
+        path: "/etc/ssh/sshd_config"
+        regex: "^(#)?{{item.key}}"
+        line: "{{item.key}} {{item.value}}"
+        state: present
+      loop:
+      - { key: "PermitRootLogin", value: "no" }
+      - { key: "PasswordAuthentication", value: "yes" } 
+      - { key: "PermitEmptyPasswords", value: "yes" } 
+      - { key: "X11Forwarding", value: "no" } 
+      - { key: "Port", value: "{{ ssh_port }}" }
+      notify: "restart sshd"
+    - name: Update and upgrade apt packages
+      apt:
+        upgrade: yes
+        update_cache: yes
+      when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+    - name: Install generic tools
+      ansible.builtin.package:
+        name:
+          - jq
+          - vim
+          - git
+          - ufw
+          - wget
+          - curl
+          - dnsutils
+          - hcloud-cli
+        state: latest
+    - name: Enable net.ipv4.ip_forward
+      sysctl:
+        name: net.ipv4.ip_forward
+        value: '1'
+        sysctl_set: yes
+        state: present
+        reload: yes
+    - name: Enable net.ipv6.conf.all.forwarding
+      sysctl:
+        name: net.ipv6.conf.all.forwarding
+        value: '1'
+        sysctl_set: yes
+        state: present
+        reload: yes
+    # I know it's super scary and the better way would be to copy the script into the repo (after it was reviewed) and then upload it that way
+    - name: Download tailscale install script
+      ansible.builtin.get_url:
+        url: https://tailscale.com/install.sh
+        dest: /root/tailscale-install.sh
+        mode: '0700'
+    - name: Install tailscale
+      ansible.builtin.command: sh -c /root/tailscale-install.sh
+    - name: Setup tailscale
+      command: tailscale up --ssh --advertise-exit-node --auth-key="{{ ts_auth_key }}"
+    - name: Default deny incoming traffic
+      ufw:
+        direction: incoming
+        default: deny
+    - name: Default allow outgoing traffic
+      ufw:
+        direction: outgoing
+        default: allow
+    - name: Allow all tailnet communication
+      community.general.ufw:
+        rule: allow
+        interface: tailscale0
+        direction: in
+    - name: Allow public SSH access
+      community.general.ufw:
+        rule: allow
+        port: "{{ ssh_port }}"
+    - name: UFW firewall enbaled
+      community.general.ufw:
+        state: enabled
+    - name: Download code-server install script
+      ansible.builtin.get_url:
+        url: https://code-server.dev/install.sh
+        dest: "/home/{{ username }}/code-server-install.sh"
+				owner: "{{ username }}"
+        mode: '0700'
+    - name: Install code-server
+      become: yes
+      become_user: "{{ username }}"
+      ansible.builtin.command: sh -c "/home/{{ username }}/code-server-install.sh"
+    - name: Start code-server
+      ansible.builtin.systemd:
+        name: "code-server@{{ username }}"
+        state: started
+        enabled: true
+    - name: Configure code-server
+      ansible.builtin.template:
+        src: /templates/config.yaml.j2
+        dest: "/home/{{ username }}/.local/code-server/config.yaml"
+        owner: "{{ username }}"
+        mode: '0644'
+      triggers:
+      - "restart code-server"
+    - name: Activate tailscale funnel
+      command: tailscale serve https / localhost:8080 && tailscale funnel 443 on
+  handlers:
+   - name: restart code-server
+     service:
+       name: "code-server@{{ username }}"
+       state: restarted
+   - name: restart sshd
+     service:
+       name: sshd
+       state: restarted

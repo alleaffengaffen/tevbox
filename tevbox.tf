@@ -20,10 +20,9 @@ variable "password" {
   description = "Password for user created by cloud-init (empty means it's disabled)"
 }
 
-variable "ssh_key" {
+variable "github_user" {
   type        = string
-  default     = ""
-  description = "SSH key to configure for the admin user"
+  description = "Username of the user that initiated the Workflow"
 }
 
 variable "ssh_port" {
@@ -79,10 +78,6 @@ output "password" {
   value = nonsensitive(var.password)
 }
 
-output "ssh_keys" {
-  value = local.ssh_keys
-}
-
 output "ssh_port" {
   value = var.ssh_port
 }
@@ -123,9 +118,7 @@ locals {
   tailnet         = "alleaffengaffen.org.github"
   hostname        = var.hostname != "" ? var.hostname : "tevbox-${random_integer.count.result}"
   domain          = "technat.dev"
-  yubikey         = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJov21J2pGxwKIhTNPHjEkDy90U8VJBMiAodc2svmnFC cardno:000618187880"
-  ssh_keys        = var.ssh_key == "" ? [local.yubikey] : [local.yubikey, var.ssh_key]
-  root_ssh_key_id = "rootkey" # only give the yubikey as ssh key for the root user (just to prevent the mail which sends you the root password)
+  root_ssh_key_id = "rootkey" # there must be a key named rootkey in the Hcloud project to prevent Hetzner sending us mails with the root password
 }
 resource "hcloud_server" "tevbox" {
   name        = local.hostname
@@ -138,17 +131,21 @@ resource "hcloud_server" "tevbox" {
     ipv4_enabled = true
     ipv6_enabled = true
   }
-  user_data = templatefile("${path.module}/cloud-config.yaml", {
-    hostname          = local.hostname
-    username          = var.username
-    password          = var.password
-    ssh_keys          = local.ssh_keys
-    ssh_port          = var.ssh_port
-    hcloud_token      = var.hcloud_token
-    hetzner_dns_token = var.hetzner_dns_token
-    zone_id           = data.hetznerdns_zone.dns_zone.id
-    tailnet_auth_key  = tailscale_tailnet_key.bootstrap.key
-  })
+  user_data = <<EOT
+    #cloud-config <hostname>
+    packages:
+    - python3
+    - python3-pip
+    runcmd:
+      - |
+        pip3 install ansible
+        ansible-galaxy collection install community.general
+        ansible-pull -C develop --clean --purge -i localhost, \
+        -U https://github.com/alleaffengaffen/tevbox.git \
+        -vv tevbox.yml -e username=${var.username} \
+        -e password=${var.password} -e github_user=${var.github_user} \
+        -e ssh_port=${var.ssh_port} -e ts_auth_key=${tailscale_tailnet_key.bootstrap.key}
+  EOT
 }
 
 resource "hetznerdns_record" "tevbox" {

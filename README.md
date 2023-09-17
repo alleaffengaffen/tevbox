@@ -20,11 +20,14 @@ The workflow for creating a new VM is simple
   - You are asked certain parameters which are sometimes mandatory and sometimes just to allow for customization
 - The workflow will pass these variables 1:1 to [Terraform](https://www.terraform.io/) which in turn creates the server
   - Terraform is stateless, so we fire and forget which makes the machine unmanaged afterwards
-- Terraform uses cloud-init to bootstrap the server at first boot
-  - Cloud-init executes everything as root, so your shell customization and other things have to be done manually
+- Terraform uses a dead-simple cloud-init script to execute `ansible-pull` to bootstrap the server at first boot
+  - Ansible itself is executed as root, so by default all things will be done by root
+  - Ansible receives it's dynamic variables from Terraform which has templated the `ansible-pull` command with CLI variables
+  - Ansible will bootstrap the server, in case of a failure, it will abort or never run if there is a syntax error. In such a scenario the only way to get access to the server is using the rootkey defined in the project
 - Once the workflow has finished, the server is up & running, you can get the details of it in the last step of the workflow
 
 Here are some things to note when working on the machine:
+- ssh keys are automatically copied from the user that executed the workflow
 - `destroy-machine` destroyes the machine, it's DNS record and removes it from the tailnet
 - the tailscale funnel is used for the code-server
 - the code-server is running for your specific user and accessible over the funnel with the password of your username
