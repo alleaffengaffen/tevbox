@@ -112,7 +112,7 @@
       ansible.builtin.get_url:
         url: https://code-server.dev/install.sh
         dest: "/home/{{ username }}/code-server-install.sh"
-				owner: "{{ username }}"
+        owner: "{{ username }}"
         mode: '0700'
     - name: Install code-server
       become: yes
@@ -129,8 +129,7 @@
         dest: "/home/{{ username }}/.local/code-server/config.yaml"
         owner: "{{ username }}"
         mode: '0644'
-      triggers:
-      - "restart code-server"
+      notify: "restart code-server"
     - name: Activate tailscale funnel
       command: tailscale serve https / localhost:8080 && tailscale funnel 443 on
   handlers:
