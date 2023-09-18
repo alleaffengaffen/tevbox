@@ -110,6 +110,10 @@ output "domain" {
   value = "${local.hostname}.${local.domain}"
 }
 
+output "code_server_url" {
+  value = "${local.hostname}.${local.tailnet_domain}"
+}
+
 ############
 # Resources
 ############

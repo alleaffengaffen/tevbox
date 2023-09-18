@@ -1,0 +1,8 @@
+exclude_paths:
+  - .github/workflows/
+
+skip_list:
+  - no-changed-when
+# one of the key principals of ansible would be idempotency,
+# but since this is a one-time bootstrap o a devbox,
+# we haven't designed our playbook that way

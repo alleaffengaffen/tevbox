@@ -14,43 +14,48 @@
     # Note: we create this user at the very beginning to ensure we could log into the machine if something fails during the rest of the bootstrap process
     - name: Create admin user
       ansible.builtin.user:
-        name: "{{username}}"
-        comment: "{{username}}"
+        name: "{{ username }}"
+        comment: "{{ username }}"
         shell: /usr/bin/bash
         home: "/home/{{ username }}"
         groups: sudo
         password: "{{ password | password_hash('sha512', 'salt') }}"
     - name: Set authorized keys from Github for user
-      authorized_key:
-        user: "{{username}}"
-        key: "{{ lookup('url', \"https://github.com/{{ github_user }}.keys\", split_lines=False) }}"
+      ansible.posix.authorized_key:
+        user: "{{ username }}"
+        key: '{{ lookup(''url'', "https://github.com/{{ github_user }}.keys", split_lines=False) }}'
     - name: Allow passwordless sudo
-      lineinfile:
+      ansible.builtin.lineinfile:
         path: /etc/sudoers
         state: present
         regexp: "^%{{ item }}"
         line: "%{{ item }} ALL=(ALL) NOPASSWD: ALL"
         validate: "visudo -cf %s"
       with_items:
-      - wheel
-      - sudo
+        - wheel
+        - sudo
     - name: Configure sshd
-      lineinfile:
+      ansible.builtin.lineinfile:
         path: "/etc/ssh/sshd_config"
-        regex: "^(#)?{{item.key}}"
-        line: "{{item.key}} {{item.value}}"
+        regex: "^(#)?{{ item.key }}"
+        line: "{{ item.key }} {{ item.value }}"
         state: present
       loop:
-      - { key: "PermitRootLogin", value: "no" }
-      - { key: "PasswordAuthentication", value: "yes" } 
-      - { key: "PermitEmptyPasswords", value: "yes" } 
-      - { key: "X11Forwarding", value: "no" } 
-      - { key: "Port", value: "{{ ssh_port }}" }
-      notify: "restart sshd"
-    - name: Update and upgrade apt packages
-      apt:
-        upgrade: yes
-        update_cache: yes
+        - {key: "PermitRootLogin", value: "no"}
+        - {key: "PasswordAuthentication", value: "yes"}
+        - {key: "PermitEmptyPasswords", value: "yes"}
+        - {key: "X11Forwarding", value: "no"}
+        - {key: "Port", value: "{{ ssh_port }}"}
+      notify: "Restart sshd"
+    - name: Upgrade all packages (DNF)
+      ansible.builtin.dnf:
+        name: "*"
+        state: latest
+      when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+    - name: Upgrade all packages (APT)
+      ansible.builtin.apt:
+        upgrade: true
+        update_cache: true
       when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
     - name: Install generic tools
       ansible.builtin.package:
@@ -65,35 +70,35 @@
           - hcloud-cli
         state: latest
     - name: Enable net.ipv4.ip_forward
-      sysctl:
+      ansible.posix.sysctl:
         name: net.ipv4.ip_forward
-        value: '1'
-        sysctl_set: yes
+        value: "1"
+        sysctl_set: true
         state: present
-        reload: yes
+        reload: true
     - name: Enable net.ipv6.conf.all.forwarding
-      sysctl:
+      ansible.posix.sysctl:
         name: net.ipv6.conf.all.forwarding
-        value: '1'
-        sysctl_set: yes
+        value: "1"
+        sysctl_set: true
         state: present
-        reload: yes
+        reload: true
     # I know it's super scary and the better way would be to copy the script into the repo (after it was reviewed) and then upload it that way
     - name: Download tailscale install script
       ansible.builtin.get_url:
         url: https://tailscale.com/install.sh
         dest: /root/tailscale-install.sh
-        mode: '0700'
+        mode: "0700"
     - name: Install tailscale
       ansible.builtin.command: sh -c /root/tailscale-install.sh
     - name: Setup tailscale
-      command: tailscale up --ssh --advertise-exit-node --auth-key="{{ ts_auth_key }}"
+      ansible.builtin.command: tailscale up --ssh --advertise-exit-node --auth-key="{{ ts_auth_key }}"
     - name: Default deny incoming traffic
-      ufw:
+      community.general.ufw:
         direction: incoming
         default: deny
     - name: Default allow outgoing traffic
-      ufw:
+      community.general.ufw:
         direction: outgoing
         default: allow
     - name: Allow all tailnet communication
@@ -113,9 +118,9 @@
         url: https://code-server.dev/install.sh
         dest: "/home/{{ username }}/code-server-install.sh"
         owner: "{{ username }}"
-        mode: '0700'
+        mode: "0700"
     - name: Install code-server
-      become: yes
+      become: true
       become_user: "{{ username }}"
       ansible.builtin.command: sh -c "/home/{{ username }}/code-server-install.sh"
     - name: Start code-server
@@ -123,21 +128,55 @@
         name: "code-server@{{ username }}"
         state: started
         enabled: true
-    - name: Configure code-server
-      ansible.builtin.template:
-        src: /templates/config.yaml.j2
-        dest: "/home/{{ username }}/.local/code-server/config.yaml"
-        owner: "{{ username }}"
-        mode: '0644'
-      notify: "restart code-server"
-    - name: Activate tailscale funnel
-      command: tailscale serve https / localhost:8080 && tailscale funnel 443 on
+    - name: Wait for port 8080 to become open on the host, don't start checking for 10 seconds
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 8080
+        delay: 10
+    - name: Set code-server password
+      ansible.builtin.lineinfile:
+        path: "/home/{{ username }}/.config/code-server/config.yaml"
+        regex: "^password"
+        line: "password: {{ password }}"
+      notify: "Restart code-server"
+    - name: Disable code-server authentication
+      ansible.builtin.lineinfile:
+        path: "/home/{{ username }}/.config/code-server/config.yaml"
+        regex: "^auth"
+        line: "auth: none"
+      when: password == ""
+      notify: "Restart code-server"
+    - name: Activate tailscale serve
+      ansible.builtin.command:
+        argv:
+          - "tailscale"
+          - "serve"
+          - "https"
+          - "/"
+          - "localhost:8080"
+    - name: Active tailscale funnel
+      ansible.builtin.command:
+        argv:
+          - "tailscale"
+          - "funnel"
+          - "443"
+          - "on"
+    - name: Get chezmoi install script
+      ansible.builtin.get_url:
+        url: https://get.chezmoi.io
+        dest: "/home/{{ username }}/chezmoi-install.sh"
+        mode: "0700"
+    - name: Install chezmoi
+      become: true
+      become_user: "{{ username }}"
+      ansible.builtin.script: "/home/{{ username }}/chezmoi-install.sh init --apply {{ github_user }}"
+      failed_when: false
   handlers:
-   - name: restart code-server
-     service:
-       name: "code-server@{{ username }}"
-       state: restarted
-   - name: restart sshd
-     service:
-       name: sshd
-       state: restarted
+    - name: Restart code-server
+      ansible.builtin.service:
+        name: "code-server@{{ username }}"
+        state: restarted
+    - name: Restart sshd
+      ansible.builtin.service:
+        name: sshd
+        state: restarted

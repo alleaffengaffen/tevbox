@@ -7,7 +7,7 @@ on:
         type: string
         default: ""
         description: Hostname of the instance (if empty will be generated)
-      username: 
+      username:
         type: string
         default: technat
         description: Admin user to create
@@ -15,14 +15,14 @@ on:
         type: string
         default: ""
         description: Password for user created by cloud-init (empty means it's disabled)
-      ssh_port: 
+      ssh_port:
         type: string
         default: '22'
         description: SSH port to configure
       type:
         type: choice
         default: cax11
-        options: 
+        options:
           - cx11
           - cpx11
           - cx22
@@ -74,7 +74,7 @@ jobs:
         id: init
         run: terraform init
       - name: Terraform Apply
-        env: 
+        env:
           TF_VAR_hostname: ${{ github.event.inputs.hostname }}
           TF_VAR_username: ${{ github.event.inputs.username }}
           TF_VAR_password: ${{ github.event.inputs.password }}

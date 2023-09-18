@@ -28,12 +28,11 @@ The workflow for creating a new VM is simple
 
 Here are some things to note when working on the machine:
 - ssh keys are automatically copied from the user that executed the workflow
-- `destroy-machine` destroyes the machine, it's DNS record and removes it from the tailnet
-- the tailscale funnel is used for the code-server
+- the tailscale funnel is used for the code-server (e.g port 443 already blocked)
 - the code-server is running for your specific user and accessible over the funnel with the password of your username
 - ufw firewall is enabled, blocking all incoming traffic on the public IP except SSH -> you need to open ports you want to use
 
-Please note that since Terraform does not track it's state, the machine is unamanged from now on. You must manually delete / stop / restart it from the Hetzner Console. For some extra convenience there's a commaned called `destroy-machine` that will terminate the instance once executed.
+Please note that since Terraform does not track it's state, the machine is unamanged from now on. To delete it, you can run the workflow "Delete an instance" which will do some hardcoded API calls to delete the resources or you can also delete the resources manually if you want.
 
 ## Preconditions
 
@@ -51,12 +50,4 @@ For the tevbox project to work, it's important to have some static things:
 ## Open Ideas
 
 - [ ] Run GH workflow every evening checking for left-over servers and sending you a notification 
-- [ ] Install code-server with this snippet:
-```console
-curl -fsSL https://code-server.dev/install.sh | sh
-sudo systemctl enable --now code-server@${username}
-sudo tailscale serve https / localhost:8080
-sudo tailscale funnel 443 on
-sed -e -i 's/^password\:.*$/password\:${password}/g' /home/${username}/.config/code-server/config.yaml
-sudo systemctl restart code-server@${username}
-```
+- [ ] Generate Github Identity for tevbox
