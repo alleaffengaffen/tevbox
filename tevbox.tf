@@ -140,6 +140,7 @@ resource "hcloud_server" "tevbox" {
     packages:
     - python3
     - python3-pip
+    - git
     runcmd:
       - |
         pip3 install ansible
