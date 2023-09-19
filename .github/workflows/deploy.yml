@@ -41,8 +41,8 @@ on:
           - ubuntu-22.04
           - debian-10
           - debian-11
-          - rocky-8
-          - rocky-9
+          #- rocky-8
+          #- rocky-9
         description: OS Flavor
       location:
         type: choice
