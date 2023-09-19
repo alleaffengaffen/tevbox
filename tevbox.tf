@@ -144,7 +144,7 @@ resource "hcloud_server" "tevbox" {
     - git
     - epel-release
     - ufw
-    ${ endif }
+    %{ endif }
     runcmd:
       - |
         pip3 install ansible
