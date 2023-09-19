@@ -5,14 +5,14 @@
   # become_user: root
   gather_facts: true
   vars:
-    username: ""
+    username: "{{ undef(hint='You must specify a username') }}"
     password: ""
-    github_user: ""
-    ssh_port: ""
-    ts_auth_key: ""
+    github_user: "{{ undef(hint='You must specify your Github username') }}"
+    ssh_port: "22"
+    ts_auth_key: "{{ undef(hint='You must specify a tailnet auth key') }}"
   tasks:
     # Note: we create this user at the very beginning to ensure we could log into the machine if something fails during the rest of the bootstrap process
-    - name: Create admin user
+    - name: Create admin user (sudo-based)
       ansible.builtin.user:
         name: "{{ username }}"
         comment: "{{ username }}"
@@ -20,6 +20,16 @@
         home: "/home/{{ username }}"
         groups: sudo
         password: "{{ password | password_hash('sha512', 'salt') }}"
+      when: ansible_distribution != 'Rocky' 
+    - name: Create admin user (wheel-based)
+      ansible.builtin.user:
+        name: "{{ username }}"
+        comment: "{{ username }}"
+        shell: /usr/bin/bash
+        home: "/home/{{ username }}"
+        groups: wheel
+        password: "{{ password | password_hash('sha512', 'salt') }}"
+      when: ansible_distribution == 'Rocky'
     - name: Set authorized keys from Github for user
       ansible.posix.authorized_key:
         user: "{{ username }}"
@@ -51,13 +61,13 @@
       ansible.builtin.dnf:
         name: "*"
         state: latest
-      when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+      when: ansible_distribution == 'CentOS' or ansible_distribution == 'Rocky'
     - name: Upgrade all packages (APT)
       ansible.builtin.apt:
         upgrade: true
         update_cache: true
       when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
-    - name: Install generic tools
+    - name: Install generic tools 
       ansible.builtin.package:
         name:
           - jq
@@ -69,6 +79,7 @@
           - dnsutils
           - hcloud-cli
         state: latest
+      when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
     - name: Enable net.ipv4.ip_forward
       ansible.posix.sysctl:
         name: net.ipv4.ip_forward
@@ -97,22 +108,27 @@
       community.general.ufw:
         direction: incoming
         default: deny
+      when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
     - name: Default allow outgoing traffic
       community.general.ufw:
         direction: outgoing
         default: allow
+      when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
     - name: Allow all tailnet communication
       community.general.ufw:
         rule: allow
         interface: tailscale0
         direction: in
+      when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
     - name: Allow public SSH access
       community.general.ufw:
         rule: allow
         port: "{{ ssh_port }}"
+      when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
     - name: UFW firewall enbaled
       community.general.ufw:
         state: enabled
+      when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
     - name: Download code-server install script
       ansible.builtin.get_url:
         url: https://code-server.dev/install.sh
