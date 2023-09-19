@@ -140,7 +140,11 @@ resource "hcloud_server" "tevbox" {
     packages:
     - python3
     - python3-pip
+    %{ if var.flavor == "rocky-*" }
     - git
+    - epel-release
+    - ufw
+    ${ endif }
     runcmd:
       - |
         pip3 install ansible
