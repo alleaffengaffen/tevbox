@@ -165,11 +165,12 @@
       ansible.builtin.get_url:
         url: https://get.chezmoi.io
         dest: "/home/{{ username }}/chezmoi-install.sh"
+        owner: "{{ username }}"
         mode: "0700"
     - name: Install chezmoi
       become: true
       become_user: "{{ username }}"
-      ansible.builtin.script: "/home/{{ username }}/chezmoi-install.sh init --apply {{ github_user }}"
+      ansible.builtin.script: "cd /home/{{ username }} && /home/{{ username }}/chezmoi-install.sh init --apply {{ github_user }}"
       failed_when: false
   handlers:
     - name: Restart code-server

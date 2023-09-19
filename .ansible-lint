@@ -3,6 +3,8 @@ exclude_paths:
 
 skip_list:
   - no-changed-when
+  - package-latest
+
 # one of the key principals of ansible would be idempotency,
 # but since this is a one-time bootstrap o a devbox,
 # we haven't designed our playbook that way
