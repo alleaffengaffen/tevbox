@@ -32,7 +32,7 @@ Here are some things to note when working on the machine:
 - ssh keys are automatically copied from your Github user
 - the machines has joined my tailnet called 'alleaffengaffen.org.github' and thus has access to other machines in this VPN
 - the code-server is running for your specific user and accessible over the funnel with the password of your username
-- the tailscale [funnel]() on port 8443 is already blocked due to the code-server 
+- the tailscale [funnel]() on port 443 is already blocked due to the code-server 
 - ufw firewall is enabled, blocking all incoming traffic on the public IP except SSH -> you need to open ports you want to use
 - authentication against Github is done automatically if you are using the code-server in a browser (done using device auth)
 

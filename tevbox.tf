@@ -103,7 +103,7 @@ output "tailscale_addresses" {
 }
 
 output "code_server_url" {
-  value = "https://${local.hostname}.${local.tailnet_domain}/code"
+  value = "https://${local.hostname}.${local.tailnet_domain}/"
 }
 
 ############

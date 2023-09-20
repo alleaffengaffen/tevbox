@@ -163,7 +163,7 @@
           - "tailscale"
           - "serve"
           - "https"
-          - "/code"
+          - "/"
           - "localhost:8080"
     - name: Active tailscale funnel
       ansible.builtin.command:
@@ -184,7 +184,7 @@
     - name: Run chezmoi
       become: true
       become_user: "{{ username }}"
-      ansible.builtin.script: "chezmoi init --apply {{ github_user }}"
+      ansible.builtin.script: "/usr/local/bin/chezmoi init --apply {{ github_user }}"
       failed_when: false # since this could likely fail, we always accept it as is
   handlers:
     - name: Restart code-server

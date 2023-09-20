@@ -80,4 +80,4 @@ jobs:
           TF_VAR_tailscale_api_key: ${{ secrets.TF_VAR_tailscale_api_key }}
         run: terraform apply -auto-approve -input=false
       - name: Terraform Output
-        run: terraform output -raw >> $GITHUB_STEP_SUMMARY
+        run: terraform output >> $GITHUB_STEP_SUMMARY
