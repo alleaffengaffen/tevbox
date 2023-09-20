@@ -10,7 +10,6 @@
     github_user: "{{ undef(hint='You must specify your Github username') }}"
     ssh_port: "22"
     ts_auth_key: "{{ undef(hint='You must specify a tailnet auth key') }}"
-    code_port: "8443" # funnel port used for the code-server
   tasks:
     # Note: we create this user at the very beginning to ensure we could log into the machine if something fails during the rest of the bootstrap process
     - name: Create admin user (sudo-based)
@@ -163,14 +162,15 @@
         argv:
           - "tailscale"
           - "serve"
-          - "tcp:{{ code_port }}"
-          - "tcp://localhost:8080"
+          - "https"
+          - "/code"
+          - "localhost:8080"
     - name: Active tailscale funnel
       ansible.builtin.command:
         argv:
           - "tailscale"
           - "funnel"
-          - "{{ code_port }}"
+          - "443"
           - "on"
     - name: Get chezmoi install script
       ansible.builtin.get_url:

@@ -103,7 +103,7 @@ output "tailscale_addresses" {
 }
 
 output "code_server_url" {
-  value = "${local.hostname}.${local.tailnet_domain}:${local.code_port}"
+  value = "https://${local.hostname}.${local.tailnet_domain}/code"
 }
 
 ############
@@ -112,7 +112,6 @@ output "code_server_url" {
 locals {
   tailnet_domain  = "little-cloud.ts.net"
   tailnet         = "alleaffengaffen.org.github"
-  code_port       = "8443"
   hostname        = var.hostname != "" ? var.hostname : "tevbox-${random_integer.count.result}"
   root_ssh_key_id = "rootkey" # there must be a key named rootkey in the Hcloud project to prevent Hetzner sending us mails with the root password
 }
@@ -136,7 +135,7 @@ resource "hcloud_server" "tevbox" {
     runcmd:
       - |
         %{if var.flavor == "rocky-9"}
-        sudo dnf install epel-release -y 
+        sudo dnf install epel-release tar -y 
         sleep 2
         sudo dnf install ufw -y
         %{endif}
@@ -148,8 +147,7 @@ resource "hcloud_server" "tevbox" {
         -U https://github.com/alleaffengaffen/tevbox.git \
         -vv tevbox.yml -e username=${var.username} \
         -e password=${var.password} -e github_user=${var.github_user} \
-        -e ssh_port=${var.ssh_port} -e ts_auth_key=${tailscale_tailnet_key.bootstrap.key} \
-        -e code_port=${local.code_port}
+        -e ssh_port=${var.ssh_port} -e ts_auth_key=${tailscale_tailnet_key.bootstrap.key}
   EOT
 }
 

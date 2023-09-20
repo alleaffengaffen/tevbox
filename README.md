@@ -13,7 +13,7 @@ So this repo provides a solution how you can quickly create a fresh cloud server
 
 ## Solution design
 
-In general: a tevbox is just a dead-simple VPS with a mainstream Linux Distro and some development tools as well as the famous [code-server](https://github.com/coder/code-server). In my case I'm using [Hetzner](http://hetzner.de/) for this job as their machines are very affordable.
+In general: a tevbox is just a dead-simple VPS with a mainstream Linux Distro and some development tools as well as the famous [code-server](https://github.com/coder/code-server). In my case I'm using [Hetzner](http://hetzner.de/) for this job as their machines are very affordable. But it could be anything, doesn't even need to be public (but Internet access would help ;))
 
 The workflow for creating a new VM is as follows:
 - Head over to the Actions tab of this repository and manually dispatch the workflow "Create new instance".
@@ -25,16 +25,16 @@ The workflow for creating a new VM is as follows:
 - Ansible itself is executed as root (due to cloud-init), so by default all things will be done by root
   - Ansible receives it's dynamic variables from Terraform which has templated the `ansible-pull` command with CLI variables -> they will always override any other variables set within ansible
   - Ansible will bootstrap the server, in case of a failure, it will abort or never run if there is a syntax error. In such a scenario the only way to get access to the server is using the `rootkey` defined in the project
-- Once the workflow has finished, the server is up & running. You can get the details of the server in the `Terraform Apply` step's logs
+- Once the workflow has finished, the server is up & running. You can get the details of the server in the workflow summary
 - To delete the machine you can simply trigger the workflow "Delete an instance" and enter the name of your instance
 
 Here are some things to note when working on the machine:
 - ssh keys are automatically copied from your Github user
 - the machines has joined my tailnet called 'alleaffengaffen.org.github' and thus has access to other machines in this VPN
 - the code-server is running for your specific user and accessible over the funnel with the password of your username
-- the tailscale [funnel]() on port 8443 is already blocked due to the code-server -> either expose on the domain/public IP or use port 8443/10000 on the funnel
+- the tailscale [funnel]() on port 8443 is already blocked due to the code-server 
 - ufw firewall is enabled, blocking all incoming traffic on the public IP except SSH -> you need to open ports you want to use
-- authentication against Github is done automatically if you are using the code-server in a browser, all you need is a Github session in the same browser
+- authentication against Github is done automatically if you are using the code-server in a browser (done using device auth)
 
 ## Preconditions
 

@@ -37,11 +37,8 @@ on:
         type: choice
         default: ubuntu-22.04
         options:
-          - ubuntu-20.04
           - ubuntu-22.04
-          - debian-10
           - debian-11
-          - rocky-8
           - rocky-9
         description: OS Flavor
       location:
@@ -83,4 +80,4 @@ jobs:
           TF_VAR_tailscale_api_key: ${{ secrets.TF_VAR_tailscale_api_key }}
         run: terraform apply -auto-approve -input=false
       - name: Terraform Output
-        run: terraform output -json >> $GITHUB_STEP_SUMMARY
+        run: terraform output -raw >> $GITHUB_STEP_SUMMARY
