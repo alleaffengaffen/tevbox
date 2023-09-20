@@ -32,7 +32,7 @@ Here are some things to note when working on the machine:
 - ssh keys are automatically copied from your Github user
 - the machines has joined my tailnet called 'alleaffengaffen.org.github' and thus has access to other machines in this VPN
 - the code-server is running for your specific user and accessible over the funnel with the password of your username
-- the tailscale [funnel]() on port 443 is already blocked due to the code-server -> either expose on the domain/public IP or use port 8443/10000 on the funnel
+- the tailscale [funnel]() on port 8443 is already blocked due to the code-server -> either expose on the domain/public IP or use port 8443/10000 on the funnel
 - ufw firewall is enabled, blocking all incoming traffic on the public IP except SSH -> you need to open ports you want to use
 - authentication against Github is done automatically if you are using the code-server in a browser, all you need is a Github session in the same browser
 
@@ -43,7 +43,6 @@ For the tevbox project to work, it's important to have some static things:
   - A cost limit + notification
   - An API Token for the project that is allowed to read & write 
   - An SSH key named `rootkey` which allows emergency access to the root user (if ansible doesn't reconfiure ssh) + prevents Hetzner from sending a mail with the generated root password
-- A Hetzner DNS API Token 
 - A tailnet with:
   - A tailscale API key to generate tailnet keys saved as repository secret -> note that this key will expire in 90 days 
   - At least a tag named `funnel` that adds the funnel attribute to the nodes

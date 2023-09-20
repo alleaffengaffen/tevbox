@@ -9,7 +9,6 @@ on:
         description: "Hostname of the instance to delete"
 
 env:
-  DOMAIN: "technat.dev"
   TAILNET: "alleaffengaffen.org.github"
 
 jobs:
@@ -31,27 +30,6 @@ jobs:
         run: |
           curl --fail-with-body -sSL -X DELETE -H "Authorization: Bearer ${{ secrets.TF_VAR_hcloud_token }}" \
           "https://api.hetzner.cloud/v1/servers/${{ env.SERVER_ID }}"
-      - name: Lookup DNS Zone ID
-        if: always()
-        run: |
-          ZONE_ID=$(curl --fail-with-body -sSL -X GET -H "Auth-API-Token: ${{ secrets.TF_VAR_hetzner_dns_token}}" \
-            https://dns.hetzner.com/api/v1/zones \
-            | jq ".zones[] | select(.name==\"${{ env.DOMAIN}}\") | .id " \
-            | tr -d "\"")
-          echo "ZONE_ID=$ZONE_ID" >> $GITHUB_ENV
-      - name: Lookup DNS Record ID
-        if: always()
-        run: |
-          RECORD_ID=$(curl --fail-with-body -sSL -X GET -H "Auth-API-Token: ${{ secrets.TF_VAR_hetzner_dns_token }}" \
-            "https://dns.hetzner.com/api/v1/records?zone_id=${{ env.ZONE_ID }}" \
-            | jq ".records[] | select(.name==\"${{ github.event.inputs.hostname }}\") | .id" \
-            | tr -d "\"")
-          echo "RECORD_ID=$RECORD_ID" >> $GITHUB_ENV
-      - name: Delete DNS Record
-        if: always()
-        run: |
-          curl --fail-with-body -sSL -X "DELETE" -H "Auth-API-Token: ${{ secrets.TF_VAR_hetzner_dns_token }}" \
-          "https://dns.hetzner.com/api/v1/records/${{ env.RECORD_ID }}"
       - name: Get Tailscale device ID
         if: always()
         run: |

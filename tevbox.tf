@@ -54,10 +54,6 @@ variable "hcloud_token" {
   type      = string
   sensitive = true
 }
-variable "hetzner_dns_token" {
-  type      = string
-  sensitive = true
-}
 variable "tailscale_api_key" {
   type      = string
   sensitive = true
@@ -106,12 +102,8 @@ output "tailscale_addresses" {
   value = data.tailscale_device.tevbox.addresses
 }
 
-output "domain" {
-  value = "${local.hostname}.${local.domain}"
-}
-
 output "code_server_url" {
-  value = "${local.hostname}.${local.tailnet_domain}"
+  value = "${local.hostname}.${local.tailnet_domain}:${local.code_port}"
 }
 
 ############
@@ -120,8 +112,8 @@ output "code_server_url" {
 locals {
   tailnet_domain  = "little-cloud.ts.net"
   tailnet         = "alleaffengaffen.org.github"
+  code_port       = "8443"
   hostname        = var.hostname != "" ? var.hostname : "tevbox-${random_integer.count.result}"
-  domain          = "technat.dev"
   root_ssh_key_id = "rootkey" # there must be a key named rootkey in the Hcloud project to prevent Hetzner sending us mails with the root password
 }
 resource "hcloud_server" "tevbox" {
@@ -132,7 +124,7 @@ resource "hcloud_server" "tevbox" {
   keep_disk   = true
   ssh_keys    = [local.root_ssh_key_id]
   public_net {
-    ipv4_enabled = true
+    ipv4_enabled = true # as soon as github.com supports ipv6, this is theoretically not needed any more
     ipv6_enabled = true
   }
   user_data = <<EOT
@@ -143,11 +135,11 @@ resource "hcloud_server" "tevbox" {
     - git
     runcmd:
       - |
-        %{ if var.flavor == "rocky-*" }
+        %{if var.flavor == "rocky-9"}
         sudo dnf install epel-release -y 
         sleep 2
         sudo dnf install ufw -y
-        %{ endif }
+        %{endif}
         pip3 install ansible
         git clone https://github.com/alleaffengaffen/tevbox.git /root/tevbox
         ansible-galaxy install -r /root/tevbox/requirements.yml
@@ -156,21 +148,9 @@ resource "hcloud_server" "tevbox" {
         -U https://github.com/alleaffengaffen/tevbox.git \
         -vv tevbox.yml -e username=${var.username} \
         -e password=${var.password} -e github_user=${var.github_user} \
-        -e ssh_port=${var.ssh_port} -e ts_auth_key=${tailscale_tailnet_key.bootstrap.key}
+        -e ssh_port=${var.ssh_port} -e ts_auth_key=${tailscale_tailnet_key.bootstrap.key} \
+        -e code_port=${local.code_port}
   EOT
-}
-
-resource "hetznerdns_record" "tevbox" {
-  zone_id = data.hetznerdns_zone.dns_zone.id
-  name    = local.hostname
-  value   = hcloud_server.tevbox.ipv4_address
-  type    = "A"
-  ttl     = 60
-}
-resource "hcloud_rdns" "tevbox" {
-  server_id  = hcloud_server.tevbox.id
-  ip_address = hcloud_server.tevbox.ipv4_address
-  dns_ptr    = "${local.hostname}.${local.domain}"
 }
 
 resource "tailscale_tailnet_key" "bootstrap" {
@@ -178,7 +158,7 @@ resource "tailscale_tailnet_key" "bootstrap" {
   reusable      = false
   preauthorized = true
   expiry        = 300 # 5min
-  tags          = ["tag:funnel"]
+  tags          = ["tag:funnel", "tag:allow-ssh"]
 }
 
 resource "random_integer" "count" {
@@ -196,19 +176,11 @@ data "tailscale_device" "tevbox" {
   depends_on = [hcloud_server.tevbox]
 }
 
-data "hetznerdns_zone" "dns_zone" {
-  name = local.domain
-}
-
 ############
 # Providers & requirements
 ############
 provider "hcloud" {
   token = var.hcloud_token
-}
-
-provider "hetznerdns" {
-  apitoken = var.hetzner_dns_token
 }
 
 provider "tailscale" {
@@ -219,10 +191,6 @@ provider "tailscale" {
 terraform {
   required_version = ">= 1.5.6"
   required_providers {
-    hetznerdns = {
-      source  = "timohirt/hetznerdns"
-      version = "~> 2.2.0"
-    }
     hcloud = {
       source  = "hetznercloud/hcloud"
       version = "~> 1.42.1"

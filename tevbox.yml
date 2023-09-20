@@ -10,6 +10,7 @@
     github_user: "{{ undef(hint='You must specify your Github username') }}"
     ssh_port: "22"
     ts_auth_key: "{{ undef(hint='You must specify a tailnet auth key') }}"
+    code_port: "8443" # funnel port used for the code-server
   tasks:
     # Note: we create this user at the very beginning to ensure we could log into the machine if something fails during the rest of the bootstrap process
     - name: Create admin user (sudo-based)
@@ -162,29 +163,29 @@
         argv:
           - "tailscale"
           - "serve"
-          - "https"
-          - "/"
-          - "localhost:8080"
+          - "tcp:{{ code_port }}"
+          - "tcp://localhost:8080"
     - name: Active tailscale funnel
       ansible.builtin.command:
         argv:
           - "tailscale"
           - "funnel"
-          - "443"
+          - "{{ code_port }}"
           - "on"
     - name: Get chezmoi install script
       ansible.builtin.get_url:
         url: https://get.chezmoi.io
-        dest: "/home/{{ username }}/chezmoi-install.sh"
-        owner: "{{ username }}"
+        dest: "/root/chezmoi-install.sh"
         mode: "0700"
     - name: Install chezmoi
+      environment:
+        BINDIR: /usr/local/bin/
+      ansible.builtin.script: /root/chezmoi-install.sh
+    - name: Run chezmoi
       become: true
       become_user: "{{ username }}"
-      environment:
-        HOME: "/home/{{ username }}"
-      ansible.builtin.script: "/home/{{ username }}/chezmoi-install.sh init --apply {{ github_user }}"
-      failed_when: false
+      ansible.builtin.script: "chezmoi init --apply {{ github_user }}"
+      failed_when: false # since this could likely fail, we always accept it as is
   handlers:
     - name: Restart code-server
       ansible.builtin.service:

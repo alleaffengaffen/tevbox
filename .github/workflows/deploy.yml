@@ -81,7 +81,6 @@ jobs:
           TF_VAR_location: ${{ github.event.inputs.location }}
           TF_VAR_hcloud_token: ${{ secrets.TF_VAR_hcloud_token }}
           TF_VAR_tailscale_api_key: ${{ secrets.TF_VAR_tailscale_api_key }}
-          TF_VAR_hetzner_dns_token: ${{ secrets.TF_VAR_hetzner_dns_token }}
         run: terraform apply -auto-approve -input=false
       - name: Terraform Output
-        run: terraform output >> $GITHUB_STEP_SUMMARY
+        run: terraform output -json >> $GITHUB_STEP_SUMMARY
