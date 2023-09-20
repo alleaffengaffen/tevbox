@@ -143,9 +143,15 @@ resource "hcloud_server" "tevbox" {
     - git
     runcmd:
       - |
+        %{ if var.flavor == "rocky-*" }
+        sudo dnf install epel-release -y 
+        sleep 2
         sudo dnf install ufw -y
+        %{ endif }
         pip3 install ansible
-        ansible-galaxy collection install community.general
+        git clone https://github.com/alleaffengaffen/tevbox.git /root/tevbox
+        ansible-galaxy install -r /root/tevbox/requirements.yml
+        rm -rf /root/tevbox
         ansible-pull -C develop --clean --purge -i localhost, \
         -U https://github.com/alleaffengaffen/tevbox.git \
         -vv tevbox.yml -e username=${var.username} \

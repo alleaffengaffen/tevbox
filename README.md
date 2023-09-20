@@ -53,4 +53,3 @@ For the tevbox project to work, it's important to have some static things:
 
 - [ ] Run GH workflow every evening checking for left-over servers and sending you a notification
 - [ ] Install chezmoi
-- [ ] Add support for Rocky Linux (partially done, epel-release and dnf still required)

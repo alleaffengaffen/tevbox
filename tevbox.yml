@@ -20,7 +20,7 @@
         home: "/home/{{ username }}"
         groups: sudo
         password: "{{ password | password_hash('sha512', 'salt') }}"
-      when: ansible_distribution != 'Rocky' 
+      when: ansible_distribution != 'Rocky'
     - name: Create admin user (wheel-based)
       ansible.builtin.user:
         name: "{{ username }}"
@@ -51,11 +51,11 @@
         line: "{{ item.key }} {{ item.value }}"
         state: present
       loop:
-        - {key: "PermitRootLogin", value: "no"}
-        - {key: "PasswordAuthentication", value: "yes"}
-        - {key: "PermitEmptyPasswords", value: "yes"}
-        - {key: "X11Forwarding", value: "no"}
-        - {key: "Port", value: "{{ ssh_port }}"}
+        - { key: "PermitRootLogin", value: "no" }
+        - { key: "PasswordAuthentication", value: "yes" }
+        - { key: "PermitEmptyPasswords", value: "yes" }
+        - { key: "X11Forwarding", value: "no" }
+        - { key: "Port", value: "{{ ssh_port }}" }
       notify: "Restart sshd"
     - name: Upgrade all packages (DNF)
       ansible.builtin.dnf:
@@ -67,7 +67,7 @@
         upgrade: true
         update_cache: true
       when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
-    - name: Install generic tools 
+    - name: Install generic tools
       ansible.builtin.package:
         name:
           - jq
