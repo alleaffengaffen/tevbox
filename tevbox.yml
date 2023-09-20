@@ -94,16 +94,6 @@
         sysctl_set: true
         state: present
         reload: true
-    # I know it's super scary and the better way would be to copy the script into the repo (after it was reviewed) and then upload it that way
-    - name: Download tailscale install script
-      ansible.builtin.get_url:
-        url: https://tailscale.com/install.sh
-        dest: /root/tailscale-install.sh
-        mode: "0700"
-    - name: Install tailscale
-      ansible.builtin.command: sh -c /root/tailscale-install.sh
-    - name: Setup tailscale
-      ansible.builtin.command: tailscale up --ssh --advertise-exit-node --auth-key="{{ ts_auth_key }}"
     - name: Default deny incoming traffic
       community.general.ufw:
         direction: incoming
@@ -157,6 +147,22 @@
         line: "auth: none"
       when: password == ""
       notify: "Restart code-server"
+    # I know it's super scary and the better way would be to copy the script into the repo (after it was reviewed) and then upload it that way
+    - name: Download tailscale install script
+      ansible.builtin.get_url:
+        url: https://tailscale.com/install.sh
+        dest: /root/tailscale-install.sh
+        mode: "0700"
+    - name: Install tailscale
+      ansible.builtin.command: sh -c /root/tailscale-install.sh
+    - name: Setup tailscale
+      ansible.builtin.command: tailscale up --ssh --advertise-exit-node --auth-key="{{ ts_auth_key }}"
+      # Note: from now on the workflow will be marked as green
+    - name: Get chezmoi install script
+      ansible.builtin.get_url:
+        url: https://get.chezmoi.io
+        dest: "/root/chezmoi-install.sh"
+        mode: "0700"
     - name: Activate tailscale serve
       ansible.builtin.command:
         argv:
@@ -172,11 +178,6 @@
           - "funnel"
           - "443"
           - "on"
-    - name: Get chezmoi install script
-      ansible.builtin.get_url:
-        url: https://get.chezmoi.io
-        dest: "/root/chezmoi-install.sh"
-        mode: "0700"
     - name: Install chezmoi
       environment:
         BINDIR: /usr/local/bin/
