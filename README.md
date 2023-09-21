@@ -13,7 +13,7 @@ So this repo provides a solution how you can quickly create a fresh cloud server
 
 ## Solution design
 
-In general: a tevbox is just a dead-simple VPS with a mainstream Linux Distro and some development tools as well as the famous [code-server](https://github.com/coder/code-server). In my case I'm using [Hetzner](http://hetzner.de/) for this job as their machines are very affordable. But it could be anything, doesn't even need to be public (but Internet access would help ;))
+In general: a tevbox is just a dead-simple VPS with a mainstream Linux Distro and some development tools as well as the famous [code-server](https://github.com/coder/code-server). All other tools you need to develop are most likely also browser-based so this means you can code from wherever you want. In my case I'm using [Hetzner](http://hetzner.de/) for this job as their machines are very affordable. But it could be anything, doesn't even need to be public (but Internet access would help ;))
 
 The workflow for creating a new VM is as follows:
 - Head over to the Actions tab of this repository and manually dispatch the workflow "Create new instance".
