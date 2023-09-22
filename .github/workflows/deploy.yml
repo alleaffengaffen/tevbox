@@ -25,8 +25,8 @@ on:
         options:
           - cx11
           - cpx11
-          - cx22
-          - cpx22
+          - cx21
+          - cpx21
           - cx31
           - cpx31
           - cax11
