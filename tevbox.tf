@@ -156,7 +156,7 @@ resource "tailscale_tailnet_key" "bootstrap" {
   reusable      = false
   preauthorized = true
   expiry        = 300 # 5min
-  tags          = ["tag:funnel", "tag:allow-ssh"]
+  tags          = ["tag:funnel", "tag:lan"]
 }
 
 resource "random_integer" "count" {
