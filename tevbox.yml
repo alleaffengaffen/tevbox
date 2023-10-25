@@ -148,6 +148,8 @@
       when: password == ""
       notify: "Restart code-server"
     - name: Install code-server extensions
+      become: yes
+      become_user: "{{ username }}"
       ansible.builtin.command: code-server --install-extension {{ item }}
       with_items:
         - redhat.vscode-yaml
