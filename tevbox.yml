@@ -67,7 +67,7 @@
         upgrade: true
         update_cache: true
       when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
-    - name: Install generic tools
+    - name: Install generic tools (only debian-based)
       ansible.builtin.package:
         name:
           - jq
@@ -147,6 +147,13 @@
         line: "auth: none"
       when: password == ""
       notify: "Restart code-server"
+    - name: Install code-server extensions
+      ansible.builtin.command: code-server --install-extension {{ item }}
+      with_items:
+        - redhat.vscode-yaml
+        - vscodevim.vim
+        - golang.Go
+        - hashicorp.terraform
     # I know it's super scary and the better way would be to copy the script into the repo (after it was reviewed) and then upload it that way
     - name: Download tailscale install script
       ansible.builtin.get_url:
@@ -187,6 +194,13 @@
       become_user: "{{ username }}"
       ansible.builtin.script: "/usr/local/bin/chezmoi init --apply {{ github_user }}"
       failed_when: false # since this could likely fail, we always accept it as is
+    - name: Create code directory
+      ansible.builtin.file:
+        path: "/home/{{ username}}/code"
+        state: directory
+        mode: '0750'
+        owner: "{{ username }}"
+        group: "{{ username }}"
   handlers:
     - name: Restart code-server
       ansible.builtin.service:
