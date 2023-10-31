@@ -177,16 +177,15 @@
         argv:
           - "tailscale"
           - "serve"
-          - "https"
-          - "/"
+          - "--bg"
           - "localhost:8080"
     - name: Active tailscale funnel
       ansible.builtin.command:
         argv:
           - "tailscale"
           - "funnel"
-          - "443"
-          - "on"
+          - "--bg"
+          - "8080"
     - name: Install chezmoi
       environment:
         BINDIR: /usr/local/bin/
