@@ -80,7 +80,7 @@ jobs:
       - name: Terraform Apply (alleaffengaffen.org.github)
         if:  ${{ github.event.inputs.tailnet }} == "alleaffengaffen.org.github"
         env: 
-          TF_VAR_hcloud_token: ${{ secrets.hcloud_token_root }}
+          TF_VAR_hcloud_token: ${{ secrets.hcloud_token_alleaffengaffen }}
           TF_VAR_tailscale_api_key: ${{ secrets.tailscale_api_key_alleaffengaffen }}
           TF_VAR_tailnet_domain: "little-cloud.ts.net"
         run: terraform apply -auto-approve -input=false
