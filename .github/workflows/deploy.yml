@@ -93,6 +93,6 @@ jobs:
         run: terraform apply -auto-approve -input=false
       - name: Terraform Output
         run: |
-          echo "OUTPUTS=$(terraform output -json)" > $GITHUB_ENV
+          echo "OUTPUTS='$(terraform output -json)'" > $GITHUB_ENV
       - name: Step Summary
         run: echo ${{ env.OUTPUTS}} > $GITHUB_STEP_SUMMARY
