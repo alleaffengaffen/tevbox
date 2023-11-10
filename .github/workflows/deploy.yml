@@ -6,19 +6,22 @@ on:
       hostname:
         type: string
         default: ""
-        description: Hostname of the instance (if empty will be generated)
-      username:
-        type: string
-        default: technat
-        description: Admin user to create
+        description: Hostname of the box
+      tailnet:
+        type: choice
+        default: alleaffengaffen.org.github
+        description: "Tailnet to join the server to"
+        options:
+        - alleaffengaffen.org.github
+        - the-technat.github
       password:
         type: string
         default: ""
-        description: Password for user created by cloud-init (empty means it's disabled)
+        description: Password for PAM/code-server
       ssh_port:
         type: string
         default: '22'
-        description: SSH port to configure
+        description: SSH port (most times companies block outgoing tcp/22 but may allow tcp/443)
       type:
         type: choice
         default: cax11
@@ -32,15 +35,14 @@ on:
           - cax11
           - cax21
           - cax31
-        description: Size of the instance to create (cax=arm64)
-      flavor:
+        description: Size of the box to create (cax=arm64)
+      image:
         type: choice
         default: ubuntu-22.04
         options:
           - ubuntu-22.04
           - debian-11
-          - rocky-9
-        description: OS Flavor
+        description: OS Image
       location:
         type: choice
         default: hel1
@@ -50,34 +52,49 @@ on:
           - nbg1
           - ash
           - hil
-        description: Location to deploy the server to
+        description: Location of the box
 
 jobs:
   terraform:
     name: "Terraform Run"
     runs-on: ubuntu-latest
+    env:
+      TF_VAR_hostname: ${{ github.event.inputs.hostname }}
+      TF_VAR_username: ${{ github.actor }}
+      TF_VAR_password: ${{ github.event.inputs.password }}
+      TF_VAR_ssh_port: ${{ github.event.inputs.ssh_port }}
+      TF_VAR_type: ${{ github.event.inputs.type }}
+      TF_VAR_image: ${{ github.event.inputs.image }}
+      TF_VAR_location: ${{ github.event.inputs.location }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Setup terraform
         uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: 1.5.6
+          terraform_version: 1.6.3
       - name: Terraform Init
         id: init
         run: terraform init
-      - name: Terraform Apply
+      - name: Terraform Apply (alleaffengaffen.org.github)
+        if:  ${{ github.event.inputs.tailnet }} == "alleaffengaffen.org.github"
+        env: 
+          TF_VAR_hcloud_token: ${{ secrets.hcloud_token_root }}
+          TF_VAR_tailscale_api_key: ${{ secrets.tailscale_api_key_alleaffengaffen }}
+          TF_VAR_tailnet_domain: "little-cloud.ts.net"
+        run: terraform apply -auto-approve -input=false
+      - name: Terraform Apply (the-technat.github)
+        if:  ${{ github.event.inputs.tailnet }} == "the-technat.github"
         env:
-          TF_VAR_hostname: ${{ github.event.inputs.hostname }}
-          TF_VAR_username: ${{ github.event.inputs.username }}
-          TF_VAR_password: ${{ github.event.inputs.password }}
-          TF_VAR_github_user: ${{ github.actor }}
-          TF_VAR_ssh_port: ${{ github.event.inputs.ssh_port }}
-          TF_VAR_instance_type: ${{ github.event.inputs.type }}
-          TF_VAR_flavor: ${{ github.event.inputs.flavor }}
-          TF_VAR_location: ${{ github.event.inputs.location }}
-          TF_VAR_hcloud_token: ${{ secrets.TF_VAR_hcloud_token }}
-          TF_VAR_tailscale_api_key: ${{ secrets.TF_VAR_tailscale_api_key }}
+          TF_VAR_hcloud_token: ${{ secrets.hcloud_token_root }}
+          TF_VAR_tailscale_api_key: ${{ secrets.tailscale_api_key_root }}
+          TF_VAR_tailnet_domain: "crocodile-bee.ts.net"
         run: terraform apply -auto-approve -input=false
       - name: Terraform Output
-        run: terraform output >> $GITHUB_STEP_SUMMARY
+        run: |
+          echo "# $(terraform output hostname)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY 
+          echo "Code-Server: $(terraform output code_server_url)" >> $GITHUB_STEP_SUMMARY
+          echo "Public IPv4: $(terraform output public_ipv4)" >> $GITHUB_STEP_SUMMARY
+          echo "Public IPv6: $(terraform output public_ipv6)" >> $GITHUB_STEP_SUMMARY
+          echo "Tailnet IPs: $(terraform output tailscale_addresses)" >> $GITHUB_STEP_SUMMARY

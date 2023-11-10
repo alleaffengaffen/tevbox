@@ -3,13 +3,16 @@ name: Destroy an instance
 on:
   workflow_dispatch:
     inputs:
+      tailnet:
+        required: true
+        type: choice
+        options:
+        - alleaffengaffen.org.github
+        - the-technat.github
       hostname:
         required: true
         type: string
-        description: "Hostname of the instance to delete"
-
-env:
-  TAILNET: "alleaffengaffen.org.github"
+        description: "Hostname of the box to delete"
 
 jobs:
   destory:
@@ -17,10 +20,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@main
+      - name: Set tokens correctly (root)
+        if: ${{ github.event.inputs.tailnet }} == "the-technat.github"
+        run: |
+          echo "HCLOUD_TOKEN=${{ secrets.hcloud_token_root }}" > $GITHUB_ENV
+          echo "TAILSCALE_API_KEY=${{ secrets.tailscale_api_key_root }}" > $GITHUB_ENV
+      - name: Set tokens correctly (alleaffengaffen)
+        if: ${{ github.event.inputs.tailnet }} == "alleaffengaffen.org.github"
+        run: |
+          echo "HCLOUD_TOKEN=${{ secrets.hcloud_token_alleaffengaffen }}" > $GITHUB_ENV
+          echo "TAILSCALE_API_KEY=${{ secrets.tailscale_api_key_alleaffengaffen }}" > $GITHUB_ENV
       - name: Get instance ID
         if: always()
         run: |
-          SERVER_ID=$(curl --fail-with-body -sSL -X GET -H "Authorization: Bearer ${{ secrets.TF_VAR_hcloud_token }}" \
+          SERVER_ID=$(curl --fail-with-body -sSL -X GET -H "Authorization: Bearer ${{ env.HCLOUD_TOKEN }}" \
             https://api.hetzner.cloud/v1/servers \
             | jq ".servers[] | select(.name==\"${{ github.event.inputs.hostname }}\") | .id" \
             | tr -d "\"")
@@ -28,18 +41,18 @@ jobs:
       - name: Delete instance
         if: always()
         run: |
-          curl --fail-with-body -sSL -X DELETE -H "Authorization: Bearer ${{ secrets.TF_VAR_hcloud_token }}" \
+          curl --fail-with-body -sSL -X DELETE -H "Authorization: Bearer ${{ env.HCLOUD_TOKEN }}" \
           "https://api.hetzner.cloud/v1/servers/${{ env.SERVER_ID }}"
       - name: Get Tailscale device ID
         if: always()
         run: |
-          DEVICE_ID=$(curl --fail-with-body -sSL -X "GET" -u "${{ secrets.TF_VAR_tailscale_api_key}}:" \
-            "https://api.tailscale.com/api/v2/tailnet/${{ env.TAILNET}}/devices" \
+          DEVICE_ID=$(curl --fail-with-body -sSL -X "GET" -u "${{ env.TAILSCALE_API_KEY }}:" \
+            "https://api.tailscale.com/api/v2/tailnet/${{ github.event.inputs.tailnet }}/devices" \
             | jq ".devices[] | select(.name | test(\"${{ github.event.inputs.hostname }}.+\")) | .id" \
             | tr -d "\"")
           echo "DEVICE_ID=$DEVICE_ID" >> $GITHUB_ENV
       - name: Delete Tailscale  device
         if: always()
         run: |
-          curl --fail-with-body -sSL -X "DELETE" -u "${{ secrets.TF_VAR_tailscale_api_key }}:" \
+          curl --fail-with-body -sSL -X "DELETE" -u "${{ env.TAILSCALE_API_KEY }}:" \
           "https://api.tailscale.com/api/v2/device/${{ env.DEVICE_ID }}" 

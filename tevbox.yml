@@ -7,7 +7,6 @@
   vars:
     username: "{{ undef(hint='You must specify a username') }}"
     password: ""
-    github_user: "{{ undef(hint='You must specify your Github username') }}"
     ssh_port: "22"
     ts_auth_key: "{{ undef(hint='You must specify a tailnet auth key') }}"
   tasks:
@@ -33,7 +32,7 @@
     - name: Set authorized keys from Github for user
       ansible.posix.authorized_key:
         user: "{{ username }}"
-        key: '{{ lookup(''url'', "https://github.com/{{ github_user }}.keys", split_lines=False) }}'
+        key: '{{ lookup(''url'', "https://github.com/{{ username }}.keys", split_lines=False) }}'
     - name: Allow passwordless sudo
       ansible.builtin.lineinfile:
         path: /etc/sudoers
@@ -51,9 +50,9 @@
         line: "{{ item.key }} {{ item.value }}"
         state: present
       loop:
-        - { key: "PermitRootLogin", value: "no" }
+        - { key: "PermitRootLogin", value: "yes" }
         - { key: "PasswordAuthentication", value: "yes" }
-        - { key: "PermitEmptyPasswords", value: "yes" }
+        - { key: "PermitEmptyPasswords", value: "no" }
         - { key: "X11Forwarding", value: "no" }
         - { key: "Port", value: "{{ ssh_port }}" }
       notify: "Restart sshd"
@@ -67,7 +66,7 @@
         upgrade: true
         update_cache: true
       when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
-    - name: Install generic tools (only debian-based)
+    - name: Install generic tools (APT)
       ansible.builtin.package:
         name:
           - jq
@@ -80,6 +79,14 @@
           - hcloud-cli
         state: latest
       when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+    - name: Install generic tools (DNF)
+      ansible.builtin.dnf:
+        name:
+        - epel-release
+        - tar
+        - ufw
+        state: latest
+      when: ansible_distribution == 'CentOS' or ansible_distribution == 'Rocky'
     - name: Enable net.ipv4.ip_forward
       ansible.posix.sysctl:
         name: net.ipv4.ip_forward
