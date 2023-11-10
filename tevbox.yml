@@ -200,7 +200,7 @@
     - name: Run chezmoi
       become: true
       become_user: "{{ username }}"
-      ansible.builtin.script: "/usr/local/bin/chezmoi init --apply {{ github_user }}"
+      ansible.builtin.script: "/usr/local/bin/chezmoi init --apply {{ username }}"
       failed_when: false # since this could likely fail, we always accept it as is
     - name: Create code directory
       ansible.builtin.file:
