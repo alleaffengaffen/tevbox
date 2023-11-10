@@ -23,13 +23,13 @@ jobs:
       - name: Set tokens correctly (root)
         if: github.event.inputs.tailnet == 'the-technat.github'
         run: |
-          echo "HCLOUD_TOKEN=${{ secrets.hcloud_token_root }}" > $GITHUB_ENV
-          echo "TAILSCALE_API_KEY=${{ secrets.tailscale_api_key_root }}" > $GITHUB_ENV
+          echo "HCLOUD_TOKEN=${{ secrets.hcloud_token_root }}" >> $GITHUB_ENV
+          echo "TAILSCALE_API_KEY=${{ secrets.tailscale_api_key_root }}" >> $GITHUB_ENV
       - name: Set tokens correctly (alleaffengaffen)
         if: github.event.inputs.tailnet == 'alleaffengaffen.org.github'
         run: |
-          echo "HCLOUD_TOKEN=${{ secrets.hcloud_token_alleaffengaffen }}" > $GITHUB_ENV
-          echo "TAILSCALE_API_KEY=${{ secrets.tailscale_api_key_alleaffengaffen }}" > $GITHUB_ENV
+          echo "HCLOUD_TOKEN=${{ secrets.hcloud_token_alleaffengaffen }}" >> $GITHUB_ENV
+          echo "TAILSCALE_API_KEY=${{ secrets.tailscale_api_key_alleaffengaffen }}" >> $GITHUB_ENV
       - name: Get instance ID
         if: always()
         run: |
