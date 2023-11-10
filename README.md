@@ -55,3 +55,4 @@ Note: currently I have hardcoded the option to switch between `root` and `alleaf
 ## Open Ideas
 
 - [ ] Run GH workflow every evening checking for left-over servers and sending you a notification
+- [ ] Expose code-server on public interface and thus make tailscale optional
