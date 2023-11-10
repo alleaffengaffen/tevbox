@@ -66,6 +66,7 @@ jobs:
       TF_VAR_type: ${{ github.event.inputs.type }}
       TF_VAR_image: ${{ github.event.inputs.image }}
       TF_VAR_location: ${{ github.event.inputs.location }}
+      TF_VAR_tailnet: ${{ github.event.inputs.tailnet }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
