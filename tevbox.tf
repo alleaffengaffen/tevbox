@@ -36,7 +36,7 @@ resource "tailscale_tailnet_key" "bootstrap" {
   reusable      = false
   preauthorized = true
   expiry        = 300 # 5min
-  tags          = ["tag:funnel", "tag:tevbox"]
+  tags          = ["tag:feature-funnel", "tag:acl-tevbox"]
 }
 
 ############
