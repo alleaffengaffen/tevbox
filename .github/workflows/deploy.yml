@@ -93,9 +93,6 @@ jobs:
         run: terraform apply -auto-approve -input=false
       - name: Terraform Output
         run: |
-          echo "# $(terraform output hostname)" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY 
-          echo "Code-Server: $(terraform output code_server_url)" >> $GITHUB_STEP_SUMMARY
-          echo "Public IPv4: $(terraform output public_ipv4)" >> $GITHUB_STEP_SUMMARY
-          echo "Public IPv6: $(terraform output public_ipv6)" >> $GITHUB_STEP_SUMMARY
-          echo "Tailnet IPs: $(terraform output tailscale_addresses)" >> $GITHUB_STEP_SUMMARY
+          echo "OUTPUTS=$(terraform output -json)" > $GITHUB_ENV
+      - name: Step Summary
+        run: echo ${{ env.OUTPUTS}} > $GITHUB_STEP_SUMMARY
