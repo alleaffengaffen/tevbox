@@ -24,29 +24,38 @@ resource "hcloud_server" "tevbox" {
         ansible-galaxy install collection community.general
 
         ansible-pull -C develop --clean --purge -i localhost, \
-        -U https://github.com/alleaffengaffen/tevbox.git \
+        -U https://github.com/the-technat/tevbox.git \
         -vv tevbox.yml -e username=${var.username} \
         -e password=${var.password} -e ssh_port=${var.ssh_port} \
-        -e ts_auth_key=${tailscale_tailnet_key.bootstrap.key}
+        -e fqdn=${var.hostname}.${local.zone}
   EOT
 }
 
-resource "tailscale_tailnet_key" "bootstrap" {
-  ephemeral     = false
-  reusable      = false
-  preauthorized = true
-  expiry        = 300 # 5min
-  tags          = []
+resource "hetznerdns_record" "tevbox_v4" {
+    zone_id = data.hetznerdns_zone.main.id
+    name = var.hostname
+    value = hcloud_server.tevbox.ipv4_address
+    type = "A"
+    ttl= 60
+}
+
+resource "hetznerdns_record" "tevbox_v6" {
+    zone_id = data.hetznerdns_zone.main.id
+    name = var.hostname
+    value = hcloud_server.tevbox.ipv6_address
+    type = "AAAA"
+    ttl= 60
+}
+
+locals {
+  zone = "technat.dev"
 }
 
 ############
 # Data Sources
 ############
-data "tailscale_device" "tevbox" {
-  name     = "${var.hostname}.${var.tailnet_domain}"
-  wait_for = "300s"
-
-  depends_on = [hcloud_server.tevbox]
+data "hetznerdns_zone" "main" {
+    name = local.zone
 }
 
 ############
@@ -81,21 +90,13 @@ variable "location" {
   type        = string
 }
 
-variable "tailnet" {
-  type = string
-}
-
-variable "tailnet_domain" {
-  type = string
-}
-
 # these vars are filled by GH action secrets
 variable "hcloud_token" {
   type      = string
   sensitive = true
 }
-variable "tailscale_api_key" {
-  type      = string
+variable "hetzner_dns_token" {
+  type = string
   sensitive = true
 }
 
@@ -126,10 +127,6 @@ output "location" {
   value = var.location
 }
 
-output "tailnet" {
- value = var.tailnet
-}
-
 output "public_ipv4" {
   value = hcloud_server.tevbox.ipv4_address
 }
@@ -138,12 +135,8 @@ output "public_ipv6" {
   value = hcloud_server.tevbox.ipv6_address
 }
 
-output "tailscale_addresses" {
-  value = data.tailscale_device.tevbox.addresses
-}
-
 output "code_server_url" {
-  value = "https://${var.hostname}.${var.tailnet_domain}/"
+  value = "https://${var.hostname}.${local.zone}/"
 }
 
 ############
@@ -153,9 +146,8 @@ provider "hcloud" {
   token = var.hcloud_token
 }
 
-provider "tailscale" {
-  api_key = var.tailscale_api_key # expires every 90 days
-  tailnet = var.tailnet         # created by sign-up via Github
+provider "hetznerdns" {
+  apitoken = var.hetzner_dns_token 
 }
 
 terraform {
@@ -163,8 +155,8 @@ terraform {
     hcloud = {
       source  = "hetznercloud/hcloud"
     }
-    tailscale = {
-      source  = "tailscale/tailscale"
+    hetznerdns = {
+      source = "timohirt/hetznerdns"
     }
   }
 }

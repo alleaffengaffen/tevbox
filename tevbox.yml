@@ -6,9 +6,9 @@
   gather_facts: true
   vars:
     username: "{{ undef(hint='You must specify a username') }}"
+    fqdn: "{{ undef(hint='You must specify the FQDN for this server') }}"
     password: ""
     ssh_port: "22"
-    ts_auth_key: "{{ undef(hint='You must specify a tailnet auth key') }}"
   tasks:
     # Note: we create this user at the very beginning to ensure we could log into the machine if something fails during the rest of the bootstrap process
     - name: Create admin user (sudo-based)
@@ -118,6 +118,10 @@
       community.general.ufw:
         rule: allow
         port: "{{ ssh_port }}"
+    - name: Allow https access
+      community.general.ufw:
+        rule: allow
+        port: 443
     - name: UFW firewall enbaled
       community.general.ufw:
         state: enabled
@@ -163,17 +167,33 @@
         - vscodevim.vim
         - golang.Go
         - hashicorp.terraform
-    # I know it's super scary and the better way would be to copy the script into the repo (after it was reviewed) and then upload it that way
-    - name: Download tailscale install script
-      ansible.builtin.get_url:
-        url: https://tailscale.com/install.sh
-        dest: /root/tailscale-install.sh
-        mode: "0700"
-    - name: Install tailscale
-      ansible.builtin.command: sh -c /root/tailscale-install.sh
-    - name: Setup tailscale
-      ansible.builtin.command: tailscale up --ssh --advertise-exit-node --auth-key="{{ ts_auth_key }}"
-      # Note: from now on the workflow will be marked as green
+    - name: Get Caddy Deb Repo GPG Key
+      get_url:
+        url: https://dl.cloudsmith.io/public/caddy/stable/gpg.key
+        dest: /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+      when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+    - name: Add Caddy APT repo
+      apt_repository:
+        repo: "deb [signed-by=/usr/share/keyrings/caddy-stable-archive-keyring.gpg] https://dl.cloudsmith.io/public/caddy/stable/deb/debian any-version main"
+        state: present
+        filename: caddy-stable.list
+        update_cache: yes
+        mode: 0644
+      when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+    - name: Install caddy
+      ansible.builtin.package:
+        name: caddy
+        state: latest
+      when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+    - name: Configure Caddy
+      ansible.builtin.copy:
+        dest: "/etc/caddy/Caddyfile"
+        content: |
+          {{ fqdn }} {
+            reverse_proxy 127.0.0.1:8080
+          }
+      notify: "Restart caddy"
+      when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
     - name: Get chezmoi install script
       ansible.builtin.get_url:
         url: https://get.chezmoi.io
@@ -203,4 +223,8 @@
     - name: Restart sshd
       ansible.builtin.service:
         name: sshd
+        state: restarted
+    - name: Restart caddy
+      ansible.builtin.service:
+        name: caddy
         state: restarted

@@ -3,12 +3,12 @@ name: Destroy an instance
 on:
   workflow_dispatch:
     inputs:
-      tailnet:
+      tenant:
         required: true
         type: choice
         options:
-        - alleaffengaffen.org.github
-        - the-technat.github
+        - alleaffengaffen
+        - root
       hostname:
         required: true
         type: string
@@ -21,15 +21,11 @@ jobs:
     steps:
       - uses: actions/checkout@main
       - name: Set tokens correctly (root)
-        if: github.event.inputs.tailnet == 'the-technat.github'
-        run: |
-          echo "HCLOUD_TOKEN=${{ secrets.hcloud_token_root }}" >> $GITHUB_ENV
-          echo "TAILSCALE_API_KEY=${{ secrets.tailscale_api_key_root }}" >> $GITHUB_ENV
+        if: github.event.inputs.tenant == 'root'
+        run: echo "HCLOUD_TOKEN=${{ secrets.hcloud_token_root }}" >> $GITHUB_ENV
       - name: Set tokens correctly (alleaffengaffen)
-        if: github.event.inputs.tailnet == 'alleaffengaffen.org.github'
-        run: |
-          echo "HCLOUD_TOKEN=${{ secrets.hcloud_token_alleaffengaffen }}" >> $GITHUB_ENV
-          echo "TAILSCALE_API_KEY=${{ secrets.tailscale_api_key_alleaffengaffen }}" >> $GITHUB_ENV
+        if: github.event.inputs.tenant == 'alleaffengaffen'
+        run: echo "HCLOUD_TOKEN=${{ secrets.hcloud_token_alleaffengaffen }}" >> $GITHUB_ENV
       - name: Get instance ID
         if: always()
         run: |
@@ -43,16 +39,3 @@ jobs:
         run: |
           curl --fail-with-body -sSL -X DELETE -H "Authorization: Bearer ${{ env.HCLOUD_TOKEN }}" \
           "https://api.hetzner.cloud/v1/servers/${{ env.SERVER_ID }}"
-      - name: Get Tailscale device ID
-        if: always()
-        run: |
-          DEVICE_ID=$(curl --fail-with-body -sSL -X "GET" -u "${{ env.TAILSCALE_API_KEY }}:" \
-            "https://api.tailscale.com/api/v2/tailnet/${{ github.event.inputs.tailnet }}/devices" \
-            | jq ".devices[] | select(.name | test(\"${{ github.event.inputs.hostname }}.+\")) | .id" \
-            | tr -d "\"")
-          echo "DEVICE_ID=$DEVICE_ID" >> $GITHUB_ENV
-      - name: Delete Tailscale  device
-        if: always()
-        run: |
-          curl --fail-with-body -sSL -X "DELETE" -u "${{ env.TAILSCALE_API_KEY }}:" \
-          "https://api.tailscale.com/api/v2/device/${{ env.DEVICE_ID }}" 

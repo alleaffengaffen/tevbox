@@ -7,13 +7,13 @@ on:
         type: string
         default: ""
         description: Hostname of the box
-      tailnet:
+      tenant:
         type: choice
-        default: alleaffengaffen.org.github
-        description: "Tailnet to join the server to"
+        default: alleaffengaffen
+        description: "Tenant to join the server to"
         options:
-        - alleaffengaffen.org.github
-        - the-technat.github
+        - alleaffengaffen
+        - root
       password:
         type: string
         default: ""
@@ -66,7 +66,6 @@ jobs:
       TF_VAR_type: ${{ github.event.inputs.type }}
       TF_VAR_image: ${{ github.event.inputs.image }}
       TF_VAR_location: ${{ github.event.inputs.location }}
-      TF_VAR_tailnet: ${{ github.event.inputs.tailnet }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -78,21 +77,17 @@ jobs:
         id: init
         run: terraform init
       - name: Terraform Apply (alleaffengaffen.org.github)
-        if:  github.event.inputs.tailnet == 'alleaffengaffen.org.github'
+        if:  github.event.inputs.tenant == 'alleaffengaffen'
         env: 
           TF_VAR_hcloud_token: ${{ secrets.hcloud_token_alleaffengaffen }}
-          TF_VAR_tailscale_api_key: ${{ secrets.tailscale_api_key_alleaffengaffen }}
-          TF_VAR_tailnet_domain: "little-cloud.ts.net"
+          TF_VAR_hetzner_dns_token: ${{ secrets.hetzner_dns_token }}
         run: terraform apply -auto-approve -input=false
       - name: Terraform Apply (the-technat.github)
-        if: github.event.inputs.tailnet == 'the-technat.github'
+        if: github.event.inputs.tenant == 'root'
         env:
           TF_VAR_hcloud_token: ${{ secrets.hcloud_token_root }}
-          TF_VAR_tailscale_api_key: ${{ secrets.tailscale_api_key_root }}
-          TF_VAR_tailnet_domain: "crocodile-bee.ts.net"
+          TF_VAR_hetzner_dns_token: ${{ secrets.hetzner_dns_token }}
         run: terraform apply -auto-approve -input=false
       - name: Terraform Output
         run: |
-          echo "OUTPUTS='$(terraform output -json)'" > $GITHUB_ENV
-      - name: Step Summary
-        run: echo ${{ env.OUTPUTS}} > $GITHUB_STEP_SUMMARY
+          terraform output > $GITHUB_STEP_SUMMARY
