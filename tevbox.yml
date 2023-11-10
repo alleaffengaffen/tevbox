@@ -179,20 +179,6 @@
         url: https://get.chezmoi.io
         dest: "/root/chezmoi-install.sh"
         mode: "0700"
-    - name: Activate tailscale serve
-      ansible.builtin.command:
-        argv:
-          - "tailscale"
-          - "serve"
-          - "--bg"
-          - "localhost:8080"
-    - name: Active tailscale funnel
-      ansible.builtin.command:
-        argv:
-          - "tailscale"
-          - "funnel"
-          - "--bg"
-          - "8080"
     - name: Install chezmoi
       environment:
         BINDIR: /usr/local/bin/
