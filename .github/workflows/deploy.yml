@@ -91,3 +91,9 @@ jobs:
       - name: Terraform Output
         run: |
           terraform output > $GITHUB_STEP_SUMMARY
+      - name: Wait for code-server to be online
+        run: | 
+          until $(curl --output /dev/null --silent --head --fail https://$(terraform output -raw code_server_url)); do
+            printf '.'
+            sleep 5
+          done
