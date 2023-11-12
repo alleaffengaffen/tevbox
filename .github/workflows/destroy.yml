@@ -50,13 +50,13 @@ jobs:
         run: |
           RECORD_ID_4=$(curl --fail-with-body -sSL -X GET -H "Auth-API-Token: ${{ secrets.hetzner_dns_token }}" \
             https://dns.hetzner.com/api/v1/records?zone_id=${{ env.ZONE_ID }} \
-            | jq -r ".records[] | select(.name==\"${{ github.event.inputs.hostname }}\") | select(.type=="A") | .id")
+            | jq -r ".records[] | select(.name==\"${{ github.event.inputs.hostname }}\") | select(.type==\"A\") | .id")
           echo "RECORD_ID_4=$RECORD_ID_4" >> $GITHUB_ENV
       - name: Get record v6
         run: |
           RECORD_ID_6=$(curl --fail-with-body -sSL -X GET -H "Auth-API-Token: ${{ secrets.hetzner_dns_token }}" \
             https://dns.hetzner.com/api/v1/records?zone_id=${{ env.ZONE_ID }} \
-            | jq -r ".records[] | select(.name==\"${{ github.event.inputs.hostname }}\") | select(.type="AAAA") | .id")
+            | jq -r ".records[] | select(.name==\"${{ github.event.inputs.hostname }}\") | select(.type=\"AAAA\") | .id")
           echo "RECORD_ID_6=$RECORD_ID_6" >> $GITHUB_ENV
       - name: Delete v4 record
         run: |
