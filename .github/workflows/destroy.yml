@@ -18,6 +18,8 @@ jobs:
   destory:
     name: "Destroy run"
     runs-on: ubuntu-latest
+    env:
+      ZONE: technat.dev
     steps:
       - uses: actions/checkout@main
       - name: Set tokens correctly (root)
@@ -31,11 +33,29 @@ jobs:
         run: |
           SERVER_ID=$(curl --fail-with-body -sSL -X GET -H "Authorization: Bearer ${{ env.HCLOUD_TOKEN }}" \
             https://api.hetzner.cloud/v1/servers \
-            | jq ".servers[] | select(.name==\"${{ github.event.inputs.hostname }}\") | .id" \
-            | tr -d "\"")
+            | jq -r ".servers[] | select(.name==\"${{ github.event.inputs.hostname }}\") | .id")
           echo "SERVER_ID=$SERVER_ID" >> $GITHUB_ENV
       - name: Delete box
         if: always()
         run: |
           curl --fail-with-body -sSL -X DELETE -H "Authorization: Bearer ${{ env.HCLOUD_TOKEN }}" \
           "https://api.hetzner.cloud/v1/servers/${{ env.SERVER_ID }}"
+      - name: Get zone ID
+        run: |
+          ZONE_ID=$(curl --fail-with-body -sSL -X GET -H "Auth-API-Token: ${{ secrets.hetzner_dns_token }}" \
+            https://dns.hetzner.com/api/v1/zones \
+            | jq -r ".zones[] | select(.name==\"${{ env.ZONE }}\") | .id")
+          echo "ZONE_ID=$ZONE_ID" >> $GITHUB_ENV
+      - name: Get record ID
+        run: |
+          RECORD_IDS=($(curl --fail-with-body -sSL -X GET -H "Auth-API-Token: ${{ secrets.hetzner_dns_token }}" \
+            https://dns.hetzner.com/api/v1/records?zone_id=${{ env.ZONE_ID }} \
+            | jq -r ".records[] | select(.name==\"${{ github.event.inputs.hostname }}\") | .id"))
+          echo "RECORD_IDS=$RECORD_IDS" >> $GITHUB_ENV
+      - name: Delete record IDs
+        run: |
+          for id in "${${{ env.RECORD_IDS }}[@]}"; do
+              echo $id
+              curl --fail-with-body -sSL -X DELETE -H 'Auth-API-Token: ${{ secrets.hetzner_dns_token }}' \
+                "https://dns.hetzner.com/api/v1/records/$id" 
+          done
