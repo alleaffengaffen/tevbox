@@ -1,4 +1,4 @@
-name: Create new instance
+name: Create new box
 
 on:
   workflow_dispatch:

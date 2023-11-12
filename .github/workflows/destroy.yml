@@ -1,4 +1,4 @@
-name: Destroy an instance
+name: Destroy a box
 
 on:
   workflow_dispatch:
@@ -26,7 +26,7 @@ jobs:
       - name: Set tokens correctly (alleaffengaffen)
         if: github.event.inputs.tenant == 'alleaffengaffen'
         run: echo "HCLOUD_TOKEN=${{ secrets.hcloud_token_alleaffengaffen }}" >> $GITHUB_ENV
-      - name: Get instance ID
+      - name: Get box ID
         if: always()
         run: |
           SERVER_ID=$(curl --fail-with-body -sSL -X GET -H "Authorization: Bearer ${{ env.HCLOUD_TOKEN }}" \
@@ -34,7 +34,7 @@ jobs:
             | jq ".servers[] | select(.name==\"${{ github.event.inputs.hostname }}\") | .id" \
             | tr -d "\"")
           echo "SERVER_ID=$SERVER_ID" >> $GITHUB_ENV
-      - name: Delete instance
+      - name: Delete box
         if: always()
         run: |
           curl --fail-with-body -sSL -X DELETE -H "Authorization: Bearer ${{ env.HCLOUD_TOKEN }}" \
