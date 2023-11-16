@@ -190,6 +190,7 @@
         dest: "/etc/caddy/Caddyfile"
         content: |
           {{ fqdn }} {
+            bind {{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}
             reverse_proxy 127.0.0.1:8080
           }
       notify: "Restart caddy"
