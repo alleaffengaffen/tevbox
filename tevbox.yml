@@ -135,6 +135,13 @@
       become: true
       become_user: "{{ username }}"
       ansible.builtin.command: sh -c "/home/{{ username }}/code-server-install.sh"
+    - name: Create code-server config dir
+      ansible.builtin.file:
+        path: "/home/{{ username }}/.config/code-server"
+        owner: "{{ username }}"
+        group: "{{ username }}"
+        state: directory
+        mode: '0644'
     - name: Set code-server config
       ansible.builtin.copy:
         dest: "/home/{{ username }}/.config/code-server/config.yaml"
