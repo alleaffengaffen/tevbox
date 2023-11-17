@@ -135,13 +135,16 @@
       become: true
       become_user: "{{ username }}"
       ansible.builtin.command: sh -c "/home/{{ username }}/code-server-install.sh"
-    - name: Create code-server config dir
-      ansible.builtin.file:
-        path: "/home/{{ username }}/.config/code-server"
-        owner: "{{ username }}"
-        group: "{{ username }}"
-        state: directory
-        mode: '0644'
+    - name: Start code-server
+      ansible.builtin.systemd:
+        name: "code-server@{{ username }}"
+        state: started
+        enabled: true
+    - name: Wait for port 8080 to become open on the host, don't start checking for 10 seconds
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 8080
+        delay: 3
     - name: Set code-server config
       ansible.builtin.copy:
         dest: "/home/{{ username }}/.config/code-server/config.yaml"
@@ -153,16 +156,11 @@
           auth: password
           password: "{{ password }}"
           cert: false
-    - name: Start code-server
+    - name: Restart code-server (to apply config)
       ansible.builtin.systemd:
         name: "code-server@{{ username }}"
-        state: started
+        state: restarted
         enabled: true
-    - name: Wait for port 65000 to become open on the host, don't start checking for 10 seconds
-      ansible.builtin.wait_for:
-        host: 127.0.0.1
-        port: 65000
-        delay: 10
     - name: Disable code-server authentication (if password is empty)
       ansible.builtin.lineinfile:
         path: "/home/{{ username }}/.config/code-server/config.yaml"
