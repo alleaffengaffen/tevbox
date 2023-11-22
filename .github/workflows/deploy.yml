@@ -7,13 +7,6 @@ on:
         type: string
         default: ""
         description: Hostname of the box
-      tenant:
-        type: choice
-        default: alleaffengaffen
-        description: "Tenant to join the server to"
-        options:
-        - alleaffengaffen
-        - root
       password:
         type: string
         default: ""
@@ -59,16 +52,40 @@ jobs:
     name: "Terraform Run"
     runs-on: ubuntu-latest
     env:
-      TF_VAR_hostname: ${{ github.event.inputs.hostname }}
-      TF_VAR_username: ${{ github.actor }}
-      TF_VAR_password: ${{ github.event.inputs.password }}
-      TF_VAR_ssh_port: ${{ github.event.inputs.ssh_port }}
-      TF_VAR_type: ${{ github.event.inputs.type }}
-      TF_VAR_image: ${{ github.event.inputs.image }}
-      TF_VAR_location: ${{ github.event.inputs.location }}
+      TF_VAR_hcloud_token: ${{ secrets.hcloud_token_root }}
+      TF_VAR_hetzner_dns_token: ${{ secrets.hetzner_dns_token }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+      - name: Create Terraform backend configuration
+        run: |
+          tee s3.tfbackend << END
+            bucket = "tevbox-state"
+            key    = "${{ github.event.inputs.hostname }}"
+            region = "eu-west-1"
+          END
+      - name: Create variables file
+        run: |
+          tee ${{ github.event.inputs.hostname }}.tfvars << END
+            hostname = "${{ github.event.inputs.hostname }}"
+            username = "${{ github.event.inputs.username }}"
+            password = "${{ github.event.inputs.password }}"
+            ssh_port = "${{ github.event.inputs.ssh_port }}"
+            type     = "${{ github.event.inputs.type }}"
+            image    = "${{ github.event.inputs.image }}"
+            location = "${{ github.event.inputs.location }}"
+          END
+      - name: Save variables file to s3
+        uses: keithweaver/aws-s3-github-action@v1.0.0
+        with:
+          command: cp
+          source: ${{ github.event.inputs.hostname }}.tfvars
+          destination: s3://tevbox-state/${{ github.event.inputs.hostname}}.tfvars
+          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws_region: eu-west-1
       - name: Setup terraform
         uses: hashicorp/setup-terraform@v2
         with:
@@ -76,19 +93,9 @@ jobs:
           terraform_wrapper: false
       - name: Terraform Init
         id: init
-        run: terraform init
-      - name: Terraform Apply (alleaffengaffen.org.github)
-        if:  github.event.inputs.tenant == 'alleaffengaffen'
-        env: 
-          TF_VAR_hcloud_token: ${{ secrets.hcloud_token_alleaffengaffen }}
-          TF_VAR_hetzner_dns_token: ${{ secrets.hetzner_dns_token }}
-        run: terraform apply -auto-approve -input=false
-      - name: Terraform Apply (the-technat.github)
-        if: github.event.inputs.tenant == 'root'
-        env:
-          TF_VAR_hcloud_token: ${{ secrets.hcloud_token_root }}
-          TF_VAR_hetzner_dns_token: ${{ secrets.hetzner_dns_token }}
-        run: terraform apply -auto-approve -input=false
+        run: terraform init -backend-config=s3.tfbackend
+      - name: Terraform Apply 
+        run: terraform apply -auto-approve -input=false -var-file ${{ github.event.inputs.hostname }}.tfvars
       - name: Terraform Output
         run: |
           terraform output > $GITHUB_STEP_SUMMARY

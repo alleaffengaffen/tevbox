@@ -151,6 +151,7 @@ provider "hetznerdns" {
 }
 
 terraform {
+  backend "s3" {} # github actions will configure the rest
   required_providers {
     hcloud = {
       source  = "hetznercloud/hcloud"
