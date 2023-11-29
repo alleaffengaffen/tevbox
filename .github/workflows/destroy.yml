@@ -47,3 +47,11 @@ jobs:
         run: terraform init -backend-config=s3.tfbackend
       - name: Terraform Apply 
         run: terraform destroy -auto-approve -input=false -var-file ${{ github.event.inputs.hostname }}.tfvars
+      - name: Delete state
+        uses: keithweaver/aws-s3-github-action@v1.0.0
+        with:
+          command: rm
+          source: s3://tevbox-state/${{ github.event.inputs.name }}*
+          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws_region: eu-west-1
