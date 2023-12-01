@@ -21,7 +21,7 @@ resource "hcloud_server" "tevbox" {
     runcmd:
       - |
         pip3 install ansible
-        ansible-galaxy install collection community.general
+        ansible-galaxy collection install community.general
 
         ansible-pull -C develop --clean --purge -i localhost, \
         -U https://github.com/the-technat/tevbox.git \
