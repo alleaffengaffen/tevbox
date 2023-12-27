@@ -88,7 +88,7 @@ jobs:
         run: |
           tee ${{ github.event.inputs.hostname }}.tfvars << END
             hostname = "${{ github.event.inputs.hostname }}"
-            username = "${{ github.event.inputs.username }}"
+            username = "${{ github.actor }}"
             password = "${{ github.event.inputs.password }}"
             ssh_port = "${{ github.event.inputs.ssh_port }}"
             type     = "${{ github.event.inputs.type }}"
@@ -114,8 +114,9 @@ jobs:
       - name: Terraform Output
         run: |
           terraform output > $GITHUB_STEP_SUMMARY
+          echo "CODE_SERVER_URL=$(terraform output code_server_url)" > $GITHUB_ENV
       - name: Wait for box to be rechable
         run: |
           while true; do
-            curl -k $(terraform output code_server_url) && break || sleep 3
+            curl -k ${{ env.CODE_SERVER_URL }} && break || sleep 3
           done

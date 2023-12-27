@@ -48,11 +48,7 @@ jobs:
             region = "${{ env.STATE_BUCKET_REGION }}"
           END
       - name: Grab variables file from s3
-        uses: keithweaver/aws-s3-github-action@v1.0.0
-        with:
-          command: mv
-          source: s3://${{ env.STATE_BUCKET }}/${{ github.event.inputs.hostname}}.tfvars
-          destination: ${{ github.event.inputs.hostname }}.tfvars
+        run: aws s3 mv s3://${{ env.STATE_BUCKET }}/${{ github.event.inputs.hostname}}.tfvars ${{ github.event.inputs.hostname }}.tfvars
       - name: Setup terraform
         uses: hashicorp/setup-terraform@v3
         with:
@@ -64,7 +60,4 @@ jobs:
       - name: Terraform Apply 
         run: terraform destroy -auto-approve -input=false -var-file ${{ github.event.inputs.hostname }}.tfvars
       - name: Delete state
-        uses: keithweaver/aws-s3-github-action@v1.0.0
-        with:
-          command: rm
-          source: s3://${{ env.STATE_BUCKET }}/${{ github.event.inputs.name }}
+        run: aws s3 rm s3://${{ env.STATE_BUCKET }}/${{ github.event.inputs.name }}
