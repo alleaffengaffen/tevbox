@@ -10,7 +10,33 @@
     password: "{{ undef(hint='You must specify a password') }}"
     ssh_port: "22"
   tasks:
-    # Note: we create this user at the very beginning to ensure we could log into the machine if something fails during the rest of the bootstrap process
+    - name: Get Caddy Deb Repo GPG Key
+      ansible.builtin.get_url:
+        url: https://dl.cloudsmith.io/public/caddy/stable/gpg.key
+        dest: /usr/share/keyrings/caddy-stable-archive-keyring.asc
+      when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+    - name: Add Caddy APT repo
+      ansible.builtin.apt_repository:
+        repo: "deb [signed-by=/usr/share/keyrings/caddy-stable-archive-keyring.asc] https://dl.cloudsmith.io/public/caddy/stable/deb/debian any-version main"
+        state: present
+        filename: caddy-stable.list
+        update_cache: yes
+        mode: 0644
+      when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+    - name: Install caddy
+      ansible.builtin.package:
+        name: caddy
+        state: latest
+      when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+    - name: Configure Caddy
+      ansible.builtin.copy:
+        dest: "/etc/caddy/Caddyfile"
+        content: |
+          {{ fqdn }} {
+            reverse_proxy 127.0.0.1:65000
+          }
+      notify: "Restart caddy"
+      when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
     - name: Create admin user (sudo-based)
       ansible.builtin.user:
         name: "{{ username }}"
@@ -177,33 +203,8 @@
         - vscodevim.vim
         - golang.Go
         - hashicorp.terraform
-    - name: Get Caddy Deb Repo GPG Key
-      ansible.builtin.get_url:
-        url: https://dl.cloudsmith.io/public/caddy/stable/gpg.key
-        dest: /usr/share/keyrings/caddy-stable-archive-keyring.asc
-      when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
-    - name: Add Caddy APT repo
-      ansible.builtin.apt_repository:
-        repo: "deb [signed-by=/usr/share/keyrings/caddy-stable-archive-keyring.asc] https://dl.cloudsmith.io/public/caddy/stable/deb/debian any-version main"
-        state: present
-        filename: caddy-stable.list
-        update_cache: yes
-        mode: 0644
-      when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
-    - name: Install caddy
-      ansible.builtin.package:
-        name: caddy
-        state: latest
-      when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
-    - name: Configure Caddy
-      ansible.builtin.copy:
-        dest: "/etc/caddy/Caddyfile"
-        content: |
-          {{ fqdn }} {
-            reverse_proxy 127.0.0.1:65000
-          }
-      notify: "Restart caddy"
-      when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+        - ms-kubernetes-tools.vscode-kubernetes-tools
+        - ms-azuretools.vscode-docker
     - name: Get chezmoi install script
       ansible.builtin.get_url:
         url: https://get.chezmoi.io
