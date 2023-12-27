@@ -14,7 +14,7 @@ So this repo provides a solution how you can quickly create a fresh cloud server
 
 ## Solution design
 
-In general: a tevbox is just a dead-simple VPS with a mainstream Linux Distro and some development tools as well as the famous [code-server](https://github.com/coder/code-server). All other tools you need to develop are most likely also browser-based so this means you can code from wherever you want. In my case I'm using [Hetzner](http://hetzner.de/) for this job as their machines are very affordable. But it could be anything, doesn't even need to be public, due to the awesome work of [Tailscale](https://tailscale.com).
+In general: a tevbox is just a dead-simple VPS with a mainstream Linux Distro and some development tools as well as the famous [code-server](https://github.com/coder/code-server). All other tools you need to develop are most likely also browser-based so this means you can code from wherever you want. In my case I'm using [Hetzner](http://hetzner.de/) for this job as their machines are very affordable. But it could be any cloud provider.
 
 The workflow for creating a new VM is as follows:
 - Head over to the Actions tab of this repository and manually dispatch the workflow "Create new box".
@@ -43,10 +43,9 @@ For the tevbox project to work, it's important to have some static things:
   - A cost limit + notification
   - An API Token for the project that is allowed to read & write 
   - An SSH key named `rootkey` which allows emergency access to the root user (if ansible doesn't reconfiure ssh) + prevents Hetzner from sending a mail with the generated root password
-- An S3 bucket / IAM policy / IAM user for the Terraform state
+- An S3 bucket / IAM policy / IAM role / OpenID provider for the Terraform state
 - This repo holding the source-code
 
 ## Open Ideas
 
 - [ ] Run GH workflow every evening checking for left-over servers and sending you a notification
-- [ ] Use "Login with Github" instead of the password-based auth of code-server
