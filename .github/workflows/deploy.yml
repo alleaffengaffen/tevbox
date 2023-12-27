@@ -96,11 +96,7 @@ jobs:
             location = "${{ github.event.inputs.location }}"
           END
       - name: Save variables file to s3
-        uses: keithweaver/aws-s3-github-action@v1.0.0
-        with:
-          command: cp
-          source: ${{ github.event.inputs.hostname }}.tfvars
-          destination: s3://${{ env.STATE_BUCKET }}/${{ github.event.inputs.hostname}}.tfvars
+        run: aws s3 cp ${{ github.event.inputs.hostname }}.tfvars s3://${{ env.STATE_BUCKET }}/${{ github.event.inputs.hostname}}.tfvars
       - name: Setup terraform
         uses: hashicorp/setup-terraform@v3
         with:
@@ -117,6 +113,6 @@ jobs:
           echo "CODE_SERVER_URL=$(terraform output code_server_url)" > $GITHUB_ENV
       - name: Wait for box to be rechable
         run: |
-          while true; do
-            curl -k ${{ env.CODE_SERVER_URL }} && break || sleep 3
+          for i in {1..20}; do
+            curl -sSL ${{ env.CODE_SERVER_URL }} && break || sleep 3
           done

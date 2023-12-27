@@ -7,7 +7,7 @@
   vars:
     username: "{{ undef(hint='You must specify a username') }}"
     fqdn: "{{ undef(hint='You must specify the FQDN for this server') }}"
-    password: {{ undef(hint='You must specify a password') }}
+    password: "{{ undef(hint='You must specify a password') }}"
     ssh_port: "22"
   tasks:
     # Note: we create this user at the very beginning to ensure we could log into the machine if something fails during the rest of the bootstrap process
