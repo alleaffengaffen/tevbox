@@ -39,9 +39,25 @@ resource "hetznerdns_record" "tevbox_v4" {
     ttl= 60
 }
 
+resource "hetznerdns_record" "tevbox_v4_proxy_wildcard" {
+    zone_id = data.hetznerdns_zone.main.id
+    name = "*.${var.hostname}"
+    value = hcloud_server.tevbox.ipv4_address
+    type = "A"
+    ttl= 60
+}
+
 resource "hetznerdns_record" "tevbox_v6" {
     zone_id = data.hetznerdns_zone.main.id
     name = var.hostname
+    value = hcloud_server.tevbox.ipv6_address
+    type = "AAAA"
+    ttl= 60
+}
+
+resource "hetznerdns_record" "tevbox_v6_proxy_wildcard" {
+    zone_id = data.hetznerdns_zone.main.id
+    name = "*.${var.hostname}"
     value = hcloud_server.tevbox.ipv6_address
     type = "AAAA"
     ttl= 60

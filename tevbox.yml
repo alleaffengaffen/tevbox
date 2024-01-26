@@ -35,6 +35,9 @@
           {{ fqdn }} {
             reverse_proxy 127.0.0.1:65000
           }
+          *.{{ fqdn }} {
+            reverse_proxy 127.0.0.1:65000
+          }
       notify: "Restart caddy"
       when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
     - name: Create admin user (sudo-based)
@@ -182,6 +185,7 @@
           auth: password
           password: "{{ password }}"
           cert: false
+          proxy-domain: {{ fqdn }}
     - name: Restart code-server (to apply config)
       ansible.builtin.systemd:
         name: "code-server@{{ username }}"
