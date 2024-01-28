@@ -7,7 +7,6 @@ resource "hcloud_server" "tevbox" {
   server_type = var.type
   location    = var.location
   keep_disk   = true
-  ssh_keys    = ["rootkey"] # there must be a key named rootkey in the Hcloud project to prevent Hetzner sending us mails with the root password
   firewall_ids = [hcloud_firewall.tevbox.id]
   public_net {
     ipv4_enabled = true # as soon as github.com supports ipv6, this is theoretically not needed any more
@@ -26,8 +25,7 @@ resource "hcloud_server" "tevbox" {
 
         ansible-pull -C develop --clean --purge -i localhost, \
         -U https://github.com/the-technat/tevbox.git \
-        -vv tevbox.yml -e username=${var.username} \
-        -e password=${var.password} -e ssh_port=${var.ssh_port} \
+        -vv tevbox.yml -e username=${var.username} \ 
         -e fqdn=${local.fqdn}
   EOT
 }

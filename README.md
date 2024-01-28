@@ -14,7 +14,7 @@ Of course they are usually way better integrated than everything you could possi
 
 ## Solution design
 
-In general: a tevbox is just a dead-simple VPS with a mainstream Linux distribution and some development tools as well as the awesome [code-server](https://github.com/coder/code-server) that provides the IDE experience in a browser. In my case I'm using [Hetzner](http://hetzner.de/) as cloud-provider as their machines offer great performance for value. 
+In general: a tevbox is just a dead-simple VPS with Ubuntu Server as OS and some development tools including the awesome [code-server](https://github.com/coder/code-server) that provides the IDE experience in a browser. In my case I'm using [Hetzner](http://hetzner.de/) as cloud-provider as their machines offer great performance for value. 
 
 The workflow for creating a new VM should look like this: I click on the [Actions](https://github.com/the-technat/tevbox/actions) for this repo, click "Create new box", enter some details and the box is created within minutes, spilling out an URL that opens code-server for me.
 
@@ -52,6 +52,7 @@ In case of a failure in the cloud-init script or within Ansible, the only way to
 ## Usage & Nice features
 
 Once I have a box to use, some things nice things to know are:
+- A tevbox is based on Ubuntu Server (we removed multi-OS support again as was never really used and took too much effort to maintain)
 - Poty 65000 is bound to the code-server, don´t use elsewhere
 - Caddy binds 443/80 (to all interfaces) 
 - Cloning Github repositories is best done using `HTTPS` as code-server can automatically authenticate you against Github using device codes

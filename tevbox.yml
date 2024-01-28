@@ -7,14 +7,11 @@
   vars:
     username: "{{ undef(hint='You must specify a username') }}"
     fqdn: "{{ undef(hint='You must specify the FQDN for this server') }}"
-    password: "{{ undef(hint='You must specify a password') }}"
-    ssh_port: "22"
   tasks:
     - name: Get Caddy Deb Repo GPG Key
       ansible.builtin.get_url:
         url: https://dl.cloudsmith.io/public/caddy/stable/gpg.key
         dest: /usr/share/keyrings/caddy-stable-archive-keyring.asc
-      when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
     - name: Add Caddy APT repo
       ansible.builtin.apt_repository:
         repo: "deb [signed-by=/usr/share/keyrings/caddy-stable-archive-keyring.asc] https://dl.cloudsmith.io/public/caddy/stable/deb/debian any-version main"
@@ -22,12 +19,10 @@
         filename: caddy-stable.list
         update_cache: yes
         mode: 0644
-      when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
     - name: Install caddy
       ansible.builtin.package:
         name: caddy
         state: latest
-      when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
     - name: Configure Caddy
       ansible.builtin.copy:
         dest: "/etc/caddy/Caddyfile"
@@ -39,7 +34,6 @@
             reverse_proxy 127.0.0.1:65000
           }
       notify: "Restart caddy"
-      when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
     - name: Create admin user (sudo-based)
       ansible.builtin.user:
         name: "{{ username }}"
@@ -48,21 +42,11 @@
         home: "/home/{{ username }}"
         groups: sudo
         password: "{{ password | password_hash('sha512', 'salt') }}"
-      when: ansible_distribution != 'Rocky'
-    - name: Create admin user (wheel-based)
-      ansible.builtin.user:
-        name: "{{ username }}"
-        comment: "{{ username }}"
-        shell: /usr/bin/bash
-        home: "/home/{{ username }}"
-        groups: wheel
-        password: "{{ password | password_hash('sha512', 'salt') }}"
-      when: ansible_distribution == 'Rocky'
-    - name: Set authorized keys from Github for user
-      ansible.posix.authorized_key:
-        user: "{{ username }}"
-        key: '{{ lookup(''url'', "https://github.com/{{ username }}.keys", split_lines=False) }}'
-    - name: Allow passwordless sudo
+    # - name: Set authorized keys from Github for user
+    #   ansible.posix.authorized_key:
+    #     user: "{{ username }}"
+    #     key: '{{ lookup(''url'', "https://github.com/{{ username }}.keys", split_lines=False) }}'
+    # - name: Allow passwordless sudo
       ansible.builtin.lineinfile:
         path: /etc/sudoers
         state: present
@@ -72,17 +56,11 @@
       with_items:
         - wheel
         - sudo
-    - name: Upgrade all packages (DNF)
-      ansible.builtin.dnf:
-        name: "*"
-        state: latest
-      when: ansible_distribution == 'CentOS' or ansible_distribution == 'Rocky'
-    - name: Upgrade all packages (APT)
+    - name: Upgrade all packages 
       ansible.builtin.apt:
         upgrade: true
         update_cache: true
-      when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
-    - name: Install generic tools (APT)
+    - name: Install generic tools 
       ansible.builtin.package:
         name:
           - jq
@@ -94,15 +72,6 @@
           - dnsutils
           - hcloud-cli
         state: latest
-      when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
-    - name: Install generic tools (DNF)
-      ansible.builtin.dnf:
-        name:
-        - epel-release
-        - tar
-        - ufw
-        state: latest
-      when: ansible_distribution == 'CentOS' or ansible_distribution == 'Rocky'
     - name: Download code-server install script
       ansible.builtin.get_url:
         url: https://code-server.dev/install.sh
@@ -131,8 +100,7 @@
         mode: '0644'
         content: |
           bind-addr: 127.0.0.1:65000
-          auth: password
-          password: "{{ password }}"
+          auth: none # done by caddy
           cert: false
           proxy-domain: {{ fqdn }}
     - name: Restart code-server (to apply config)
@@ -140,13 +108,6 @@
         name: "code-server@{{ username }}"
         state: restarted
         enabled: true
-    - name: Disable code-server authentication (if password is empty)
-      ansible.builtin.lineinfile:
-        path: "/home/{{ username }}/.config/code-server/config.yaml"
-        regex: "^auth"
-        line: "auth: none"
-      when: password == ""
-      notify: "Restart code-server"
     - name: Install code-server extensions
       become: yes
       become_user: "{{ username }}"
@@ -183,10 +144,6 @@
     - name: Restart code-server
       ansible.builtin.service:
         name: "code-server@{{ username }}"
-        state: restarted
-    - name: Restart sshd
-      ansible.builtin.service:
-        name: sshd
         state: restarted
     - name: Restart caddy
       ansible.builtin.service:

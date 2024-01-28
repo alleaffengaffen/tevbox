@@ -7,14 +7,6 @@ on:
         type: string
         default: ""
         description: Hostname of the box
-      password:
-        type: string
-        default: ""
-        description: Password for PAM/code-server
-      ssh_port:
-        type: string
-        default: '22'
-        description: SSH port (most times companies block outgoing tcp/22 but may allow tcp/443)
       type:
         type: choice
         default: cax11
@@ -29,13 +21,6 @@ on:
           - cax21
           - cax31
         description: Size of the box to create (cax=arm64)
-      image:
-        type: choice
-        default: ubuntu-22.04
-        options:
-          - ubuntu-22.04
-          - debian-11
-        description: OS Image
       location:
         type: choice
         default: hel1
