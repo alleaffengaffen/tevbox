@@ -72,19 +72,6 @@
       with_items:
         - wheel
         - sudo
-    - name: Configure sshd
-      ansible.builtin.lineinfile:
-        path: "/etc/ssh/sshd_config"
-        regex: "^(#)?{{ item.key }}"
-        line: "{{ item.key }} {{ item.value }}"
-        state: present
-      loop:
-        - { key: "PermitRootLogin", value: "yes" }
-        - { key: "PasswordAuthentication", value: "yes" }
-        - { key: "PermitEmptyPasswords", value: "no" }
-        - { key: "X11Forwarding", value: "no" }
-        - { key: "Port", value: "{{ ssh_port }}" }
-      notify: "Restart sshd"
     - name: Upgrade all packages (DNF)
       ansible.builtin.dnf:
         name: "*"
@@ -116,44 +103,6 @@
         - ufw
         state: latest
       when: ansible_distribution == 'CentOS' or ansible_distribution == 'Rocky'
-    - name: Enable net.ipv4.ip_forward
-      ansible.posix.sysctl:
-        name: net.ipv4.ip_forward
-        value: "1"
-        sysctl_set: true
-        state: present
-        reload: true
-    - name: Enable net.ipv6.conf.all.forwarding
-      ansible.posix.sysctl:
-        name: net.ipv6.conf.all.forwarding
-        value: "1"
-        sysctl_set: true
-        state: present
-        reload: true
-    - name: Default deny incoming traffic
-      community.general.ufw:
-        direction: incoming
-        default: deny
-    - name: Default allow outgoing traffic
-      community.general.ufw:
-        direction: outgoing
-        default: allow
-    - name: Allow all tailnet communication
-      community.general.ufw:
-        rule: allow
-        interface: tailscale0
-        direction: in
-    - name: Allow public SSH access
-      community.general.ufw:
-        rule: allow
-        port: "{{ ssh_port }}"
-    - name: Allow https access
-      community.general.ufw:
-        rule: allow
-        port: 443
-    - name: UFW firewall enbaled
-      community.general.ufw:
-        state: enabled
     - name: Download code-server install script
       ansible.builtin.get_url:
         url: https://code-server.dev/install.sh

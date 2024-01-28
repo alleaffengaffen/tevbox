@@ -8,6 +8,7 @@ resource "hcloud_server" "tevbox" {
   location    = var.location
   keep_disk   = true
   ssh_keys    = ["rootkey"] # there must be a key named rootkey in the Hcloud project to prevent Hetzner sending us mails with the root password
+  firewall_ids = [hcloud_firewall.tevbox.id]
   public_net {
     ipv4_enabled = true # as soon as github.com supports ipv6, this is theoretically not needed any more
     ipv6_enabled = true
@@ -27,7 +28,7 @@ resource "hcloud_server" "tevbox" {
         -U https://github.com/the-technat/tevbox.git \
         -vv tevbox.yml -e username=${var.username} \
         -e password=${var.password} -e ssh_port=${var.ssh_port} \
-        -e fqdn=${var.hostname}.${local.zone}
+        -e fqdn=${local.fqdn}
   EOT
 }
 
@@ -63,8 +64,43 @@ resource "hetznerdns_record" "tevbox_v6_proxy_wildcard" {
     ttl= 60
 }
 
-locals {
-  zone = "technat.dev"
+resource "hcloud_rdns" "tevbox" {
+  server_id  = hcloud_server.tevbox.id
+  ip_address = hcloud_server.tevbox.ipv4_address
+  dns_ptr    = local.fqdn
+}
+
+resource "hcloud_firewall" "tevbox" {
+  name = var.hostname
+  rule {
+    direction = "in"
+    protocol  = "icmp"
+    source_ips = [
+      "0.0.0.0/0",
+      "::/0"
+    ]
+  }
+
+  rule {
+    direction = "in"
+    protocol  = "tcp"
+    port      = "80"
+    source_ips = [
+      "0.0.0.0/0",
+      "::/0"
+    ]
+  }
+
+  rule {
+    direction = "in"
+    protocol  = "tcp"
+    port      = "443"
+    source_ips = [
+      "0.0.0.0/0",
+      "::/0"
+    ]
+  }
+
 }
 
 ############
@@ -77,6 +113,11 @@ data "hetznerdns_zone" "main" {
 ############
 # Variables
 ############
+locals {
+  zone = "technat.dev"
+  fqdn = "${var.hostname}.${local.zone}"
+}
+
 variable "hostname" {
   type        = string
 }
