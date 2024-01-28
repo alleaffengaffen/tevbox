@@ -36,27 +36,28 @@ There are two main actions I will eventually merge into one:
 
 For both actions to know about servers that exist, they put their Terraform state on S3. Currently Amazon S3 is used for this job, but once Hetzner releases their S3 implementation, we will switch to that. Using the name of a tevbox as identifiert for the state means, that you can delete a box by simply entering the tevbox's name and thus pointing the workflow to the right Terraform state file to use.
 
-Terraform itself creates the VM and any necessary cloud-resources. It does however **not** configure the server. This job is done using Ansible which is way better at handling configuration. Ansible is invoked using `ansible-pull` in a cloud-init script that Terraform passes in at Creation of the server.
+Terraform itself creates the VM and any necessary cloud-resources. It does however **not** configure the server. This job is done using Ansible which is way better at handling configuration. Ansible is invoked using a Terraform `remote-exec` provisioner. In order for Terraform to access the server it creates an ephemeral keypair. In case you need access to the server if ansible didn't succeed, go and grab the key from within the Terraform state.
 
 Ansible will do the following things:
+- Install commonly used tools 
 - Install Caddy as reverse-proxy in front of code-server
   - Including Authentication via OpenID 
 - Create the user that invoked the Github action (e.g `the-technat`)
   - Making the user sudo-capable without a password
+  - Configuring SSH keys from github.com
 - Install code-server and configure it for the respective user (including extensions)
-- Install common development tools 
 - Install and run [chezmoi](https://chezmoi.io) for the created user
-
-In case of a failure in the cloud-init script or within Ansible, the only way to get access to the server is using the Console in the portal. Use the `root` user and the password sent to you via mail.
 
 ## Usage & Nice features
 
 Once I have a box to use, some things nice things to know are:
-- A tevbox is based on Ubuntu Server (we removed multi-OS support again as was never really used and took too much effort to maintain)
+- tevbox is based on Ubuntu Server (we removed multi-OS support again as was never really used and took too much effort to maintain)
 - Poty 65000 is bound to the code-server, don´t use elsewhere
 - Caddy binds 443/80 (to all interfaces) 
 - Cloning Github repositories is best done using `HTTPS` as code-server can automatically authenticate you against Github using device codes
-- Expose dev services on localhost and access them puclicly using       `<port>.<tevbox_name>.technat.dev` (or whatever your zone is).
+- Expose dev services on localhost and access them on the internet using `<port>.<tevbox_name>.technat.dev` (or whatever your zone is).
+  - TLS is only supported for ports 8080, 8081, 9090, 9091, 3000 and 12000 (wildcards require custom caddy build + credentials for dns-01)
+  - HTTP works for other ports as well
 
 ## Preconditions
 

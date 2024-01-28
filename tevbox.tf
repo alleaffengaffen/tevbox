@@ -1,60 +1,80 @@
 ############
 # Resources
 ############
+resource "hcloud_ssh_key" "tevbox" {
+  name       = var.hostname
+  public_key = chomp(tls_private_key.ssh.public_key_openssh)
+}
+
+resource "tls_private_key" "ssh" {
+  algorithm   = "ECDSA"
+  ecdsa_curve = "P384"
+}
+
 resource "hcloud_server" "tevbox" {
-  name        = var.hostname
-  image       = "ubuntu-22.04"
-  server_type = var.type
-  location    = var.location
-  keep_disk   = true
+  name         = var.hostname
+  image        = "ubuntu-22.04"
+  server_type  = var.type
+  location     = var.location
+  keep_disk    = true
+  ssh_keys     = [hcloud_ssh_key.tevbox.id]
   firewall_ids = [hcloud_firewall.tevbox.id]
   public_net {
-    ipv4_enabled = true # as soon as github.com supports ipv6, this is theoretically not needed any more
+    ipv4_enabled = true
     ipv6_enabled = true
   }
-  user_data = <<EOT
-    #cloud-config ${var.hostname}
-    packages:
-    - ansible # note: other OSes might not contain an ansible package and they might also not contain community.general collection out of the box
-    runcmd:
-      - |
+
+  connection {
+    type        = "ssh"
+    user        = "root"
+    private_key = chomp(tls_private_key.ssh.private_key_pem)
+    host        = self.ipv4_address
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "apt update",
+      "apt install ansible -y",
+      <<EOT
         ansible-pull -C develop --clean --purge -i localhost, \
         -U https://github.com/the-technat/tevbox.git \
         -vv tevbox.yml -e username=${var.username} \ 
-        -e fqdn=${local.fqdn} -e dns_token="${var.hetzner_dns_token}"
-  EOT
+        -e fqdn=${local.fqdn} 
+      EOT
+    ]
+  }
 }
 
 resource "hetznerdns_record" "tevbox_v4" {
-    zone_id = data.hetznerdns_zone.main.id
-    name = var.hostname
-    value = hcloud_server.tevbox.ipv4_address
-    type = "A"
-    ttl= 60
+  zone_id = data.hetznerdns_zone.main.id
+  name    = var.hostname
+  value   = hcloud_server.tevbox.ipv4_address
+  type    = "A"
+  ttl     = 60
 }
 
 resource "hetznerdns_record" "tevbox_v4_proxy_wildcard" {
-    zone_id = data.hetznerdns_zone.main.id
-    name = "*.${var.hostname}"
-    value = hcloud_server.tevbox.ipv4_address
-    type = "A"
-    ttl= 60
+  zone_id = data.hetznerdns_zone.main.id
+  name    = "*.${var.hostname}"
+  value   = hcloud_server.tevbox.ipv4_address
+  type    = "A"
+  ttl     = 60
 }
 
 resource "hetznerdns_record" "tevbox_v6" {
-    zone_id = data.hetznerdns_zone.main.id
-    name = var.hostname
-    value = hcloud_server.tevbox.ipv6_address
-    type = "AAAA"
-    ttl= 60
+  zone_id = data.hetznerdns_zone.main.id
+  name    = var.hostname
+  value   = hcloud_server.tevbox.ipv6_address
+  type    = "AAAA"
+  ttl     = 60
 }
 
 resource "hetznerdns_record" "tevbox_v6_proxy_wildcard" {
-    zone_id = data.hetznerdns_zone.main.id
-    name = "*.${var.hostname}"
-    value = hcloud_server.tevbox.ipv6_address
-    type = "AAAA"
-    ttl= 60
+  zone_id = data.hetznerdns_zone.main.id
+  name    = "*.${var.hostname}"
+  value   = hcloud_server.tevbox.ipv6_address
+  type    = "AAAA"
+  ttl     = 60
 }
 
 resource "hcloud_rdns" "tevbox" {
@@ -68,6 +88,16 @@ resource "hcloud_firewall" "tevbox" {
   rule {
     direction = "in"
     protocol  = "icmp"
+    source_ips = [
+      "0.0.0.0/0",
+      "::/0"
+    ]
+  }
+
+  rule {
+    direction = "in"
+    protocol  = "tcp"
+    port      = "22"
     source_ips = [
       "0.0.0.0/0",
       "::/0"
@@ -100,7 +130,7 @@ resource "hcloud_firewall" "tevbox" {
 # Data Sources
 ############
 data "hetznerdns_zone" "main" {
-    name = local.zone
+  name = local.zone
 }
 
 ############
@@ -112,19 +142,19 @@ locals {
 }
 
 variable "hostname" {
-  type        = string
+  type = string
 }
 
 variable "username" {
-  type        = string
+  type = string
 }
 
 variable "type" {
-  type        = string
+  type = string
 }
 
 variable "location" {
-  type        = string
+  type = string
 }
 
 # these vars are filled by GH action secrets
@@ -133,7 +163,7 @@ variable "hcloud_token" {
   sensitive = true
 }
 variable "hetzner_dns_token" {
-  type = string
+  type      = string
   sensitive = true
 }
 
@@ -176,7 +206,7 @@ provider "hcloud" {
 }
 
 provider "hetznerdns" {
-  apitoken = var.hetzner_dns_token 
+  apitoken = var.hetzner_dns_token
 }
 
 terraform {
@@ -187,8 +217,12 @@ terraform {
       version = "1.45.0"
     }
     hetznerdns = {
-      source = "timohirt/hetznerdns"
+      source  = "timohirt/hetznerdns"
       version = "2.2.0"
+    }
+    tls = {
+      source = "hashicorp/tls"
+       version = "4.0.5"
     }
   }
 }
