@@ -8,11 +8,16 @@
     username: "{{ undef(hint='You must specify a username') }}"
     fqdn: "{{ undef(hint='You must specify the FQDN for this server') }}"
   tasks:
-    - name: Upgrade all packages 
+    - name: Disable ssh
+      ansible.builtin.systemd:
+        name: sshd
+        state: stopped
+        masked: true
+    - name: Upgrade all packages
       ansible.builtin.apt:
         upgrade: true
         update_cache: true
-    - name: Install generic tools 
+    - name: Install generic tools
       ansible.builtin.apt:
         name:
           - jq
@@ -28,13 +33,14 @@
       ansible.builtin.get_url:
         url: https://dl.cloudsmith.io/public/caddy/stable/gpg.key
         dest: /usr/share/keyrings/caddy-stable-archive-keyring.asc
+        mode: "0644"
     - name: Caddy APT repo is present
       ansible.builtin.apt_repository:
         repo: "deb [signed-by=/usr/share/keyrings/caddy-stable-archive-keyring.asc] https://dl.cloudsmith.io/public/caddy/stable/deb/debian any-version main"
         state: present
         filename: caddy-stable.list
-        update_cache: yes
-        mode: 0644
+        update_cache: true
+        mode: "0644"
     - name: Install caddy
       ansible.builtin.apt:
         name: caddy
@@ -42,6 +48,7 @@
     - name: Configure Caddy
       ansible.builtin.copy:
         dest: "/etc/caddy/Caddyfile"
+        mode: "0644"
         content: |
           {{ fqdn }} {
             reverse_proxy 127.0.0.1:65000
@@ -71,7 +78,7 @@
       ansible.builtin.systemd:
         name: caddy
         state: restarted
-    - name: admin user created
+    - name: Admin user created
       ansible.builtin.user:
         name: "{{ username }}"
         comment: "{{ username }}"
@@ -79,11 +86,6 @@
         home: "/home/{{ username }}"
         groups: sudo
         password_lock: true
-    - name: Set authorized keys from Github for user
-      ansible.posix.authorized_key:
-        user: "{{ username }}"
-        state: present
-        key: "{{ lookup('url', 'https://github.com/{{ username }}.keys', split_lines=False) }}"
     - name: Allow passwordless sudo
       ansible.builtin.lineinfile:
         path: /etc/sudoers
@@ -94,8 +96,8 @@
     - name: Download code-server install script
       ansible.builtin.get_url:
         url: https://code-server.dev/install.sh
-        dest: "/tmp/code-server-install.sh"
         mode: "0777"
+        dest: "/tmp/code-server-install.sh"
     - name: Install code-server
       ansible.builtin.command: sh -c "/tmp/code-server-install.sh"
     - name: Start code-server
@@ -113,7 +115,7 @@
         dest: "/home/{{ username }}/.config/code-server/config.yaml"
         owner: "{{ username }}"
         group: "{{ username }}"
-        mode: '0644'
+        mode: "0644"
         content: |
           bind-addr: 127.0.0.1:65000
           auth: none # done by caddy
@@ -124,7 +126,7 @@
         name: "code-server@{{ username }}"
         state: restarted
     - name: Install code-server extensions
-      become: yes
+      become: true
       become_user: "{{ username }}"
       ansible.builtin.command: code-server --install-extension {{ item }}
       with_items:
@@ -138,7 +140,7 @@
       ansible.builtin.file:
         path: "/home/{{ username}}/code"
         state: directory
-        mode: '0750'
+        mode: "0750"
         owner: "{{ username }}"
         group: "{{ username }}"
     - name: Get chezmoi install script

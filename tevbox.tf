@@ -1,48 +1,28 @@
 ############
 # Resources
 ############
-resource "hcloud_ssh_key" "tevbox" {
-  name       = var.hostname
-  public_key = chomp(tls_private_key.ssh.public_key_openssh)
-}
-
-resource "tls_private_key" "ssh" {
-  algorithm   = "ECDSA"
-  ecdsa_curve = "P384"
-}
-
 resource "hcloud_server" "tevbox" {
   name         = var.hostname
   image        = "ubuntu-22.04"
   server_type  = var.type
   location     = var.location
   keep_disk    = true
-  ssh_keys     = [hcloud_ssh_key.tevbox.id]
   firewall_ids = [hcloud_firewall.tevbox.id]
   public_net {
     ipv4_enabled = true
     ipv6_enabled = true
   }
 
-  connection {
-    type        = "ssh"
-    user        = "root"
-    private_key = chomp(tls_private_key.ssh.private_key_pem)
-    host        = self.ipv4_address
-  }
-
-  provisioner "remote-exec" {
-    inline = [
-      "apt update",
-      "apt install ansible -y",
-      <<EOT
-        ansible-pull -C develop --clean --purge -i localhost, \
+  user_data = <<EOT
+    #cloud-config ${var.hostname}
+    packages:
+    - ansible
+    runcmd:
+      -  ansible-pull -C develop --clean --purge -i localhost, \
         -U https://github.com/the-technat/tevbox.git \
-        -vv tevbox.yml -e username=${var.username} \ 
-        -e fqdn=${local.fqdn} 
-      EOT
-    ]
-  }
+        -vv tevbox.yml -e username=${var.username} \
+        -e fqdn=${local.fqdn}
+  EOT
 }
 
 resource "hetznerdns_record" "tevbox_v4" {
@@ -88,16 +68,6 @@ resource "hcloud_firewall" "tevbox" {
   rule {
     direction = "in"
     protocol  = "icmp"
-    source_ips = [
-      "0.0.0.0/0",
-      "::/0"
-    ]
-  }
-
-  rule {
-    direction = "in"
-    protocol  = "tcp"
-    port      = "22"
     source_ips = [
       "0.0.0.0/0",
       "::/0"
@@ -221,8 +191,8 @@ terraform {
       version = "2.2.0"
     }
     tls = {
-      source = "hashicorp/tls"
-       version = "4.0.5"
+      source  = "hashicorp/tls"
+      version = "4.0.5"
     }
   }
 }

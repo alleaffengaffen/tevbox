@@ -4,10 +4,17 @@ on:
  pull_request:
  push: 
 
+env:
+  STATE_BUCKET: "tevbox-state"
+  STATE_BUCKET_REGION: "eu-west-1" 
+
 jobs:
   terraform:
     name: "Terraform Checks"
     runs-on: ubuntu-latest
+    permissions: 
+      id-token: write
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -16,9 +23,22 @@ jobs:
       - name: Terraform Format
         id: fmt
         run: terraform fmt -check
+      - name: configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::141091412313:role/tevbox-role
+          role-session-name: tevbox
+          aws-region: ${{ env.STATE_BUCKET_REGION }}
+      - name: Create Terraform backend configuration
+        run: |
+          tee s3.tfbackend << END
+            bucket = "${{ env.STATE_BUCKET }}"
+            key    = "ci"
+            region = "${{ env.STATE_BUCKET_REGION }}"
+          END
       - name: Terraform Init
         id: init
-        run: terraform init
+        run: terraform init -backend-config=s3.tfbackend
       - name: Terraform Validate
         id: validate
         run: terraform validate -no-color
