@@ -2,17 +2,40 @@
 - name: Tevbox Setup
   hosts: all
   # become: true
-  # become_user: root
-  gather_facts: true
+  # become_user: root # cloud-init is already executed as root
+  gather_facts: false # increases speed + not needed currently
   vars:
     username: "{{ undef(hint='You must specify a username') }}"
     fqdn: "{{ undef(hint='You must specify the FQDN for this server') }}"
+    dns_token: "{{ undef(hint='You must specify a DNS Token for Hetzner DNS') }}"
   tasks:
-    - name: Get Caddy Deb Repo GPG Key
+    - name: SSHD is disabled and masked
+      ansible.builtin.systemd:
+        state: stopped
+        name: ssh
+        enabled: false
+        masked: true
+    - name: Upgrade all packages 
+      ansible.builtin.apt:
+        upgrade: true
+        update_cache: true
+    - name: Install generic tools 
+      ansible.builtin.apt:
+        name:
+          - jq
+          - vim
+          - git
+          - ufw
+          - wget
+          - curl
+          - dnsutils
+          - hcloud-cli
+        state: present
+    - name: Caddy GPG key is present
       ansible.builtin.get_url:
         url: https://dl.cloudsmith.io/public/caddy/stable/gpg.key
         dest: /usr/share/keyrings/caddy-stable-archive-keyring.asc
-    - name: Add Caddy APT repo
+    - name: Caddy APT repo is present
       ansible.builtin.apt_repository:
         repo: "deb [signed-by=/usr/share/keyrings/caddy-stable-archive-keyring.asc] https://dl.cloudsmith.io/public/caddy/stable/deb/debian any-version main"
         state: present
@@ -20,9 +43,9 @@
         update_cache: yes
         mode: 0644
     - name: Install caddy
-      ansible.builtin.package:
-        name: caddy
-        state: latest
+      ansible.builtin.apt:
+        name: caddy=2.7.6
+        state: present
     - name: Configure Caddy
       ansible.builtin.copy:
         dest: "/etc/caddy/Caddyfile"
@@ -34,60 +57,34 @@
             reverse_proxy 127.0.0.1:65000
           }
       notify: "Restart caddy"
-    - name: Create admin user (sudo-based)
+    - name: admin user created
       ansible.builtin.user:
         name: "{{ username }}"
         comment: "{{ username }}"
         shell: /usr/bin/bash
         home: "/home/{{ username }}"
         groups: sudo
-        password: "{{ password | password_hash('sha512', 'salt') }}"
-    # - name: Set authorized keys from Github for user
-    #   ansible.posix.authorized_key:
-    #     user: "{{ username }}"
-    #     key: '{{ lookup(''url'', "https://github.com/{{ username }}.keys", split_lines=False) }}'
-    # - name: Allow passwordless sudo
+        password_lock: true
+    - name: passwordless sudo is possible
       ansible.builtin.lineinfile:
         path: /etc/sudoers
         state: present
-        regexp: "^%{{ item }}"
+        regexp: "^%sudo"
         line: "%{{ item }} ALL=(ALL) NOPASSWD: ALL"
         validate: "visudo -cf %s"
-      with_items:
-        - wheel
-        - sudo
-    - name: Upgrade all packages 
-      ansible.builtin.apt:
-        upgrade: true
-        update_cache: true
-    - name: Install generic tools 
-      ansible.builtin.package:
-        name:
-          - jq
-          - vim
-          - git
-          - ufw
-          - wget
-          - curl
-          - dnsutils
-          - hcloud-cli
-        state: latest
     - name: Download code-server install script
       ansible.builtin.get_url:
         url: https://code-server.dev/install.sh
-        dest: "/home/{{ username }}/code-server-install.sh"
-        owner: "{{ username }}"
-        mode: "0700"
+        dest: "/tmp/code-server-install.sh"
+        mode: "0777"
     - name: Install code-server
-      become: true
-      become_user: "{{ username }}"
-      ansible.builtin.command: sh -c "/home/{{ username }}/code-server-install.sh"
+      ansible.builtin.command: sh -c "/tmp/code-server-install.sh"
     - name: Start code-server
       ansible.builtin.systemd:
         name: "code-server@{{ username }}"
         state: started
         enabled: true
-    - name: Wait for port 8080 to become open on the host, don't start checking for 10 seconds
+    - name: Wait for port 8080 to become open on the host, don't start checking for 3 seconds
       ansible.builtin.wait_for:
         host: 127.0.0.1
         port: 8080
@@ -107,7 +104,6 @@
       ansible.builtin.systemd:
         name: "code-server@{{ username }}"
         state: restarted
-        enabled: true
     - name: Install code-server extensions
       become: yes
       become_user: "{{ username }}"
@@ -119,6 +115,13 @@
         - hashicorp.terraform
         - ms-kubernetes-tools.vscode-kubernetes-tools
         - ms-azuretools.vscode-docker
+    - name: Create code directory
+      ansible.builtin.file:
+        path: "/home/{{ username}}/code"
+        state: directory
+        mode: '0750'
+        owner: "{{ username }}"
+        group: "{{ username }}"
     - name: Get chezmoi install script
       ansible.builtin.get_url:
         url: https://get.chezmoi.io
@@ -133,13 +136,6 @@
       become_user: "{{ username }}"
       ansible.builtin.script: "/usr/local/bin/chezmoi init --apply {{ username }}"
       failed_when: false # since this could likely fail, we always accept it as is
-    - name: Create code directory
-      ansible.builtin.file:
-        path: "/home/{{ username}}/code"
-        state: directory
-        mode: '0750'
-        owner: "{{ username }}"
-        group: "{{ username }}"
   handlers:
     - name: Restart code-server
       ansible.builtin.service:

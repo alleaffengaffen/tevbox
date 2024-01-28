@@ -3,7 +3,7 @@
 ############
 resource "hcloud_server" "tevbox" {
   name        = var.hostname
-  image       = var.image
+  image       = "ubuntu-22.04"
   server_type = var.type
   location    = var.location
   keep_disk   = true
@@ -15,18 +15,13 @@ resource "hcloud_server" "tevbox" {
   user_data = <<EOT
     #cloud-config ${var.hostname}
     packages:
-    - python3
-    - python3-pip
-    - git
+    - ansible # note: other OSes might not contain an ansible package and they might also not contain community.general collection out of the box
     runcmd:
       - |
-        pip3 install ansible
-        ansible-galaxy collection install community.general
-
         ansible-pull -C develop --clean --purge -i localhost, \
         -U https://github.com/the-technat/tevbox.git \
         -vv tevbox.yml -e username=${var.username} \ 
-        -e fqdn=${local.fqdn}
+        -e fqdn=${local.fqdn} -e dns_token="${var.hetzner_dns_token}"
   EOT
 }
 
@@ -124,20 +119,7 @@ variable "username" {
   type        = string
 }
 
-variable "password" {
-  type        = string
-  sensitive   = true
-}
-
-variable "ssh_port" {
-  type        = number
-}
-
 variable "type" {
-  type        = string
-}
-
-variable "image" {
   type        = string
 }
 
@@ -166,16 +148,8 @@ output "username" {
   value = var.username
 }
 
-output "ssh_port" {
-  value = var.ssh_port
-}
-
 output "type" {
   value = var.type
-}
-
-output "flavor" {
-  value = var.image
 }
 
 output "location" {
@@ -210,9 +184,11 @@ terraform {
   required_providers {
     hcloud = {
       source  = "hetznercloud/hcloud"
+      version = "1.45.0"
     }
     hetznerdns = {
       source = "timohirt/hetznerdns"
+      version = "2.2.0"
     }
   }
 }

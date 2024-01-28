@@ -35,6 +35,8 @@ on:
 env:
   STATE_BUCKET: "tevbox-state"
   STATE_BUCKET_REGION: "eu-west-1" 
+  TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
+  TF_VAR_hetzner_dns_token: ${{ secrets.HETZNER_DNS_TOKEN }}
 
 jobs:
   terraform:
@@ -52,16 +54,6 @@ jobs:
           role-to-assume: arn:aws:iam::141091412313:role/tevbox-role
           role-session-name: tevbox
           aws-region: ${{ env.STATE_BUCKET_REGION }}
-      - name: Fetch secrets from AKeyless
-        id: fetch-secrets
-        uses: LanceMcCarthy/akeyless-action@v3
-        with:
-          access-id: ${{ secrets.AKEYLESS_ACCESS_ID }}
-          static-secrets: |
-            {
-              "/actions/tevbox/hcloud_token":"TF_VAR_hcloud_token",
-              "/actions/tevbox/hetzner_dns_token":"TF_VAR_hetzner_dns_token"
-            }
       - name: Create Terraform backend configuration
         run: |
           tee s3.tfbackend << END
@@ -74,10 +66,7 @@ jobs:
           tee ${{ github.event.inputs.hostname }}.tfvars << END
             hostname = "${{ github.event.inputs.hostname }}"
             username = "${{ github.actor }}"
-            password = "${{ github.event.inputs.password }}"
-            ssh_port = "${{ github.event.inputs.ssh_port }}"
             type     = "${{ github.event.inputs.type }}"
-            image    = "${{ github.event.inputs.image }}"
             location = "${{ github.event.inputs.location }}"
           END
       - name: Save variables file to s3
