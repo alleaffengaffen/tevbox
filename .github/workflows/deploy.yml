@@ -33,7 +33,7 @@ on:
         description: Location of the box
 
 env:
-  STATE_BUCKET: "tevbox-state"
+  STATE_BUCKET: "gh-tevbox"
   STATE_BUCKET_REGION: "eu-west-1" 
   TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
   TF_VAR_hetzner_dns_token: ${{ secrets.HETZNER_DNS_TOKEN }}
@@ -51,7 +51,7 @@ jobs:
       - name: configure aws credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::141091412313:role/tevbox-role
+          role-to-assume: arn:aws:iam::351425708426:role/gh-tevbox
           role-session-name: tevbox
           aws-region: ${{ env.STATE_BUCKET_REGION }}
       - name: Create Terraform backend configuration
