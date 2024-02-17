@@ -4,6 +4,7 @@
   gather_facts: false # increases speed + not needed currently
   vars:
     username: "{{ undef(hint='You must specify a username') }}"
+    password: "{{ undef(hint='You must specify a password') }}"
     fqdn: "{{ undef(hint='You must specify the FQDN for this server') }}"
   tasks:
     - name: Disable ssh
@@ -71,7 +72,7 @@
         shell: /usr/bin/bash
         home: "/home/{{ username }}"
         groups: sudo
-        password_lock: true
+        password: "{{ password | password_hash('sha512', 'salt') }}"
     - name: Allow passwordless sudo
       ansible.builtin.lineinfile:
         path: /etc/sudoers
@@ -106,7 +107,8 @@
         mode: "0644"
         content: |
           bind-addr: 127.0.0.1:65000
-          auth: none # done by caddy
+          auth: password
+          password: {{ password }}
           cert: false
           proxy-domain: {{ fqdn }}
     - name: Restart code-server (to apply config)
