@@ -132,14 +132,16 @@
     - name: Get chezmoi install script
       ansible.builtin.get_url:
         url: https://get.chezmoi.io
-        dest: "/root/chezmoi-install.sh"
-        mode: "0700"
+        dest: "/tmp/chezmoi-install.sh"
+        mode: "0777"
     - name: Install chezmoi
+      become: true
+      become_user: "{{ username }}"
       environment:
-        BINDIR: /usr/local/bin/
-      ansible.builtin.script: /root/chezmoi-install.sh
+        BINDIR: "/home/{{ username }}/.local/bin/"
+      ansible.builtin.script: /tmp/chezmoi-install.sh
     - name: Run chezmoi
       become: true
       become_user: "{{ username }}"
-      ansible.builtin.script: "/usr/local/bin/chezmoi init --apply {{ username }}"
+      ansible.builtin.script: "/home/{{ username }}/.local/bin/chezmoi init --apply {{ username }}"
       failed_when: false # since this could likely fail, we always accept it as is
