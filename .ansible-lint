@@ -6,5 +6,5 @@ skip_list:
   - package-latest
 
 # one of the key principals of ansible would be idempotency,
-# but since this is a one-time bootstrap o a devbox,
+# but since this is a one-time bootstrap o a tevbox,
 # we haven't designed our playbook that way

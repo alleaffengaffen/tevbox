@@ -21,7 +21,7 @@ resource "hcloud_server" "tevbox" {
       - ansible-pull -C develop --clean --purge -i localhost, \
         -U https://github.com/the-technat/tevbox.git \
         -vv tevbox.yml -e username=${var.username} \
-        -e fqdn=${local.fqdn}
+        -e fqdn="${local.fqdn}"
   EOT
 }
 

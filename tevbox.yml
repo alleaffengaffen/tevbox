@@ -121,7 +121,6 @@
         - golang.Go
         - hashicorp.terraform
         - ms-kubernetes-tools.vscode-kubernetes-tools
-        - ms-azuretools.vscode-docker
     - name: Configure code on code-server
       ansible.builtin.copy:
         dest: "/home/{{ username }}/.local/share/code-server/User/settings.json"
