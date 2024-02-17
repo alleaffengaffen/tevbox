@@ -1,8 +1,6 @@
 ---
 - name: Tevbox Setup
   hosts: all
-  # become: true
-  # become_user: root # cloud-init is already executed as root
   gather_facts: false # increases speed + not needed currently
   vars:
     username: "{{ undef(hint='You must specify a username') }}"
@@ -17,18 +15,6 @@
       ansible.builtin.apt:
         upgrade: true
         update_cache: true
-    - name: Install generic tools
-      ansible.builtin.apt:
-        name:
-          - jq
-          - vim
-          - git
-          - ufw
-          - wget
-          - curl
-          - dnsutils
-          - hcloud-cli
-        state: present
     - name: Caddy GPG key is present
       ansible.builtin.get_url:
         url: https://dl.cloudsmith.io/public/caddy/stable/gpg.key

@@ -8,7 +8,7 @@ I'm tired of unpredictable development environments that are bound to your local
 - performance of cloud-based IDEs is often rather poor or insufficient (for running local dev instances of things)
 - control of the network stack is often not given (e.g no public IP or direct access to services exposed on your machine)
 - they usually stop working when you are inactive for some time (e.g they are session-based)
-- you have no idea what's all running on your IDE machine
+- you have no idea what's all running on your IDE machine nor could one call it minimal
 
 Of course they are usually way better integrated than everything you could possibly engineer, but I still do have my own solution how I can create a fresh cloud server ready to code and tinker on.
 
@@ -21,7 +21,9 @@ The workflow for creating a new VM should look like this: I click on the [Action
 The design makes use of the following Tools:
 - [Terraform](https://terraform.io) to bootstrap servers
 - [Ansible](https://www.ansible.com/) to configure servers
-- [Github Actions](https://docs.github.com/en/actions) to execute tools
+- [Github Actions](https://docs.github.com/en/actions) to execute both tools
+
+Apart from these tools, Github and Hetzner the workflow shouldn't make use of any other services to keep dependencies minimal.
 
 ## Tech Details
 
@@ -32,43 +34,33 @@ Using Github Actions as automation gives you certain benefits:
 
 There are two main actions I will eventually merge into one:
 - `deploy.yml`: Creates a new tevbox via Terraform
-- `destroy.yml`: Deletes a tevbox via Terraform
+- `destroy.yml`: Deletes an existing tevbox via Terraform
 
-For both actions to know about servers that exist, they put their Terraform state on S3. Currently Amazon S3 is used for this job, but once Hetzner releases their S3 implementation, we will switch to that. Using the name of a tevbox as identifiert for the state means, that you can delete a box by simply entering the tevbox's name and thus pointing the workflow to the right Terraform state file to use.
+For both actions to know about servers that exist, they put their Terraform state on S3. Currently Amazon S3 is used for this job, but once Hetzner releases their S3 implementation, we will switch to that. Using the name of a tevbox as identifier for the state means, that you can delete a box by simply entering the tevbox's name and thus pointing the workflow to the right Terraform state file to use.
 
-Terraform itself creates the VM and any necessary cloud-resources. It does however **not** configure the server. This job is done using Ansible which is way better at handling configuration. Ansible is invoked using `ansible-pull` in a cloud-init script that Terraform passes in at Creation of the server.
-
-Ansible will do the following things:
-- Disable SSH
-- Install commonly used tools 
-- Install Caddy as reverse-proxy in front of code-server
-  - Including Authentication via OpenID 
-- Create the user that invoked the Github action (e.g `the-technat`)
-  - Making the user sudo-capable without a password
-  - Configuring SSH keys from github.com
-- Install code-server and configure it for the respective user (including extensions)
-- Install and run [chezmoi](https://chezmoi.io) for the created user
-
-## Usage & Nice features
+Terraform itself creates the VM and any necessary cloud-resources. It does however **not** configure the server. This job is done using Ansible which is way better at handling configuration. Ansible is invoked using `ansible-pull` in a cloud-init script that Terraform passes in at Creation of the server. That gives you limited options to debug what's happening but also means you don't have to manage SSH state nor have to open SSH access on our server.
 
 Once I have a box to use, some things nice things to know are:
-- tevbox is based on Ubuntu Server (we removed multi-OS support again as was never really used and took too much effort to maintain)
-- Poty 65000 is bound to the code-server, don´t use elsewhere
-- Caddy binds 443/80 (to all interfaces) 
+- tevbox is based on Ubuntu Server (we removed multi-OS support again as it was never really used and took too much effort to maintain)
+- tevbox is multi-arch compatible, `arm64` and `amd64` are available (choosen using instance type)
+- the code-server listens on `127.0.0.1:65000` 
+- the code-server is exposed using [Caddy](https://caddyserver.com/) that blocks `0.0.0.0:80` and `0.0.0.0:443`
 - Cloning Github repositories is best done using `HTTPS` as code-server can automatically authenticate you against Github using device codes
 - Expose dev services on localhost and access them on the internet using `<port>.<tevbox_name>.technat.dev` (or whatever your zone is).
-  - TLS is only supported for ports 8080, 8081, 9090, 9091, 3000 and 12000 (wildcards require custom caddy build + credentials for dns-01)
+  - TLS is only supported for ports `8080`, `8081`, `9090`, `9091`, `3000` and `12000` 
   - HTTP works for other ports as well
+  - We don´t have a wildcard certificate as dns-01 with Hetzner would require a custom caddy build + Hetzner credentials on the machine
 
-In case of a failure in the cloud-init script or within Ansible, the only way to get access to the server is using the Console in the portal. Use the root user and the password sent to you via mail.
+In case of a failure in the cloud-init script or within Ansible, the only way to get access to the server is using the Console in the portal. Use the root user and the password sent to you via mail (if you haven´t deleted it already).
 
 ## Preconditions
 
 For the tevbox project to work, it's important to have some static things:
 - A Hetzner project with:
-  - A cost limit + notification
+  - the [account-nuker](https://github.com/the-technat/account-nuker) installed
+  - A cost limit + notification 
   - An API Token for the project that is allowed to read & write (token is only used within github actions)
 - A DNS zone hosted on Hetzner DNS
-  - A DNS API Token (Note: this token is shared with all tevboxes in order for Caddy to request wildcard certificates)
-- An S3 bucket for the Terraform state (for AWS this includes an IAM policy,IAM role and OpenID provider to authenticate)
+  - A DNS API Token (token is only used within github actions)
+- An S3 bucket for the Terraform state (for AWS this includes an IAM policy & role and OpenID provider for Github Actions to authenticate)
 - This repo holding the source-code

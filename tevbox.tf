@@ -33,7 +33,7 @@ resource "hetznerdns_record" "tevbox_v4" {
   ttl     = 60
 }
 
-resource "hetznerdns_record" "tevbox_v4_proxy_wildcard" {
+resource "hetznerdns_record" "tevbox_v4_wildcard" {
   zone_id = data.hetznerdns_zone.main.id
   name    = "*.${var.hostname}"
   value   = hcloud_server.tevbox.ipv4_address
@@ -49,7 +49,7 @@ resource "hetznerdns_record" "tevbox_v6" {
   ttl     = 60
 }
 
-resource "hetznerdns_record" "tevbox_v6_proxy_wildcard" {
+resource "hetznerdns_record" "tevbox_v6_wildcard" {
   zone_id = data.hetznerdns_zone.main.id
   name    = "*.${var.hostname}"
   value   = hcloud_server.tevbox.ipv6_address
@@ -57,7 +57,7 @@ resource "hetznerdns_record" "tevbox_v6_proxy_wildcard" {
   ttl     = 60
 }
 
-resource "hcloud_rdns" "tevbox" {
+resource "hcloud_rdns" "tevbox_v4" {
   server_id  = hcloud_server.tevbox.id
   ip_address = hcloud_server.tevbox.ipv4_address
   dns_ptr    = local.fqdn
@@ -189,10 +189,6 @@ terraform {
     hetznerdns = {
       source  = "timohirt/hetznerdns"
       version = "2.2.0"
-    }
-    tls = {
-      source  = "hashicorp/tls"
-      version = "4.0.5"
     }
   }
 }

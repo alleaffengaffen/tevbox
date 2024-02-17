@@ -4,10 +4,6 @@ on:
  pull_request:
  push: 
 
-env:
-  STATE_BUCKET: "tevbox-state"
-  STATE_BUCKET_REGION: "eu-west-1" 
-
 jobs:
   terraform:
     name: "Terraform Checks"
@@ -15,6 +11,9 @@ jobs:
     permissions: 
       id-token: write
       contents: read
+    env:
+      STATE_BUCKET: "tevbox-state"
+      STATE_BUCKET_REGION: "eu-west-1" 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,8 +31,8 @@ jobs:
       - name: Create Terraform backend configuration
         run: |
           tee s3.tfbackend << END
-            bucket = "${{ env.STATE_BUCKET }}"
             key    = "ci"
+            bucket = "${{ env.STATE_BUCKET }}"
             region = "${{ env.STATE_BUCKET_REGION }}"
           END
       - name: Terraform Init

@@ -5,7 +5,6 @@ on:
     inputs:
       hostname:
         type: string
-        default: ""
         description: Hostname of the box
       type:
         type: choice
@@ -17,9 +16,14 @@ on:
           - cpx21
           - cx31
           - cpx31
+          - cx41
+          - cpx41
+          - cx51
+          - cpx51
           - cax11
           - cax21
           - cax31
+          - cax41
         description: Size of the box to create (cax=arm64)
       location:
         type: choice
@@ -32,19 +36,18 @@ on:
           - hil
         description: Location of the box
 
-env:
-  STATE_BUCKET: "gh-tevbox"
-  STATE_BUCKET_REGION: "eu-west-1" 
-  TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
-  TF_VAR_hetzner_dns_token: ${{ secrets.HETZNER_DNS_TOKEN }}
-
 jobs:
   terraform:
-    name: "Terraform Run"
+    name: "Deploying tevbox..."
     runs-on: ubuntu-latest
     permissions: 
       id-token: write
       contents: read
+    env:
+      STATE_BUCKET: "tevbox-state"
+      STATE_BUCKET_REGION: "eu-west-1" 
+      TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
+      TF_VAR_hetzner_dns_token: ${{ secrets.HETZNER_DNS_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -57,24 +60,24 @@ jobs:
       - name: Create Terraform backend configuration
         run: |
           tee s3.tfbackend << END
-            bucket = "${{ env.STATE_BUCKET }}"
             key    = "${{ github.event.inputs.hostname }}"
+            bucket = "${{ env.STATE_BUCKET }}"
             region = "${{ env.STATE_BUCKET_REGION }}"
           END
       - name: Create variables file
         run: |
           tee ${{ github.event.inputs.hostname }}.tfvars << END
             hostname = "${{ github.event.inputs.hostname }}"
-            username = "${{ github.actor }}"
             type     = "${{ github.event.inputs.type }}"
             location = "${{ github.event.inputs.location }}"
+            username = "${{ github.actor }}"
           END
       - name: Save variables file to s3
         run: aws s3 cp ${{ github.event.inputs.hostname }}.tfvars s3://${{ env.STATE_BUCKET }}/${{ github.event.inputs.hostname}}.tfvars
       - name: Setup terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.6.3
+          terraform_version: 1.7.3
           terraform_wrapper: false
       - name: Terraform Init
         id: init
