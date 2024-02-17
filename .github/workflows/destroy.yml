@@ -49,5 +49,4 @@ jobs:
       - name: Terraform Apply 
         run: terraform destroy -auto-approve -input=false -var-file ${{ github.event.inputs.hostname }}.tfvars
       - name: Delete state
-        if: always() # we assume that if the rest of the workflow failed, an account-nuker already purged the state
         run: aws s3 rm s3://${{ env.STATE_BUCKET }}/${{ github.event.inputs.hostname }}

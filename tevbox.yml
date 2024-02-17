@@ -85,7 +85,9 @@
         mode: "0777"
         dest: "/tmp/code-server-install.sh"
     - name: Install code-server
-      ansible.builtin.command: sh -c "/tmp/code-server-install.sh"
+      environment:
+        HOME: /root
+      ansible.builtin.script: /tmp/code-server-install.sh
     - name: Start code-server
       ansible.builtin.systemd:
         name: "code-server@{{ username }}"
@@ -136,6 +138,10 @@
             "terminal.integrated.defaultProfile.linux": "zsh",
             "explorer.confirmDragAndDrop": false
           }
+    - name: Restart code-server (to apply config)
+      ansible.builtin.systemd:
+        name: "code-server@{{ username }}"
+        state: restarted
     - name: Create code directory
       ansible.builtin.file:
         path: "/home/{{ username}}/code"

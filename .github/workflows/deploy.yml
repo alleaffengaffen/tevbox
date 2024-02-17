@@ -35,7 +35,7 @@ on:
           - ash
           - hil
         description: Location of the box
-
+      
 jobs:
   terraform:
     name: "Deploying tevbox..."
@@ -70,6 +70,7 @@ jobs:
             hostname = "${{ github.event.inputs.hostname }}"
             type     = "${{ github.event.inputs.type }}"
             location = "${{ github.event.inputs.location }}"
+            revision = "${GITHUB_REF##*/}"
             username = "${{ github.actor }}"
           END
       - name: Save variables file to s3
