@@ -94,7 +94,7 @@
     - name: Wait for port 8080 to become open on the host, don't start checking for 3 seconds
       ansible.builtin.wait_for:
         host: 127.0.0.1
-        port: 8080
+        port: 8080 # note a rerun of the playbook wouldn´t work as then it's no longer port 8080
         delay: 3
     - name: Set code-server config
       ansible.builtin.copy:
