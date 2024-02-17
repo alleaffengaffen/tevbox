@@ -5,7 +5,12 @@ on:
     inputs:
       hostname:
         type: string
+        required: true
         description: Hostname of the box
+      password:
+        type: string
+        required: true
+        description: Password for the code-server
       type:
         type: choice
         default: cax11
@@ -68,6 +73,7 @@ jobs:
         run: |
           tee ${{ github.event.inputs.hostname }}.tfvars << END
             hostname = "${{ github.event.inputs.hostname }}"
+            password = "${{ github.event.inputs.password }}"
             type     = "${{ github.event.inputs.type }}"
             location = "${{ github.event.inputs.location }}"
             revision = "${GITHUB_REF##*/}"
