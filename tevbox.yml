@@ -122,6 +122,21 @@
         - hashicorp.terraform
         - ms-kubernetes-tools.vscode-kubernetes-tools
         - ms-azuretools.vscode-docker
+    - name: Configure code on code-server
+      ansible.builtin.copy:
+        dest: "/home/{{ username }}/.local/share/code-server/User/settings.json"
+        owner: "{{ username }}"
+        group: "{{ username }}"
+        mode: "0644"
+        content: |
+          {
+            "workbench.colorTheme": "Solarized Dark",
+            "redhat.telemetry.enabled": false,
+            "workbench.sideBar.location": "right",
+            "workbench.startupEditor": "none",
+            "terminal.integrated.defaultProfile.linux": "zsh",
+            "explorer.confirmDragAndDrop": false
+          }
     - name: Create code directory
       ansible.builtin.file:
         path: "/home/{{ username}}/code"
