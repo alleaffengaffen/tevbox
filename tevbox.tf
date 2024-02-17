@@ -19,7 +19,7 @@ resource "hcloud_server" "tevbox" {
     - ansible
     runcmd:
       - |
-        ansible-pull -C develop --clean --purge -i localhost, \
+        ansible-pull -C ${var.revision} --clean --purge -i localhost, \
         -U https://github.com/the-technat/tevbox.git \
         -vv -e username=${var.username} \
         -e fqdn="${local.fqdn}" tevbox.yml
@@ -113,6 +113,10 @@ locals {
 }
 
 variable "hostname" {
+  type = string
+}
+
+variable "revision" {
   type = string
 }
 

@@ -35,6 +35,10 @@ on:
           - ash
           - hil
         description: Location of the box
+      revision: 
+        type: string
+        default: main
+        description: Whether you want to try an alternative playbook branch
 
 jobs:
   terraform:
@@ -70,6 +74,7 @@ jobs:
             hostname = "${{ github.event.inputs.hostname }}"
             type     = "${{ github.event.inputs.type }}"
             location = "${{ github.event.inputs.location }}"
+            revision = "${{ github.event.inputs.revision }}"
             username = "${{ github.actor }}"
           END
       - name: Save variables file to s3

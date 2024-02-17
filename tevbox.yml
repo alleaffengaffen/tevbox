@@ -85,7 +85,9 @@
         mode: "0777"
         dest: "/tmp/code-server-install.sh"
     - name: Install code-server
-      ansible.builtin.command: sh -c "/tmp/code-server-install.sh"
+      environment:
+        HOME: /root
+      ansible.builtin.script: /tmp/code-server-install.sh
     - name: Start code-server
       ansible.builtin.systemd:
         name: "code-server@{{ username }}"
