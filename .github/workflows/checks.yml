@@ -12,7 +12,7 @@ jobs:
       id-token: write
       contents: read
     env:
-      STATE_BUCKET: "tevbox-state"
+      STATE_BUCKET: "gh-tevbox"
       STATE_BUCKET_REGION: "eu-west-1" 
     steps:
       - name: Checkout
@@ -25,7 +25,7 @@ jobs:
       - name: configure aws credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::141091412313:role/tevbox-role
+          role-to-assume: arn:aws:iam::351425708426:role/gh-tevbox
           role-session-name: tevbox
           aws-region: ${{ env.STATE_BUCKET_REGION }}
       - name: Create Terraform backend configuration
