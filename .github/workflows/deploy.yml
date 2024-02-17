@@ -35,11 +35,7 @@ on:
           - ash
           - hil
         description: Location of the box
-      revision: 
-        type: string
-        default: main
-        description: Whether you want to try an alternative playbook branch
-
+      
 jobs:
   terraform:
     name: "Deploying tevbox..."
@@ -74,7 +70,7 @@ jobs:
             hostname = "${{ github.event.inputs.hostname }}"
             type     = "${{ github.event.inputs.type }}"
             location = "${{ github.event.inputs.location }}"
-            revision = "${{ github.event.inputs.revision }}"
+            revision = "${GITHUB_REF##*/}"
             username = "${{ github.actor }}"
           END
       - name: Save variables file to s3
