@@ -13,20 +13,27 @@ resource "hcloud_server" "tevbox" {
     ipv6_enabled = true
   }
 
-  user_data = <<EOT
-    #cloud-config ${var.hostname}
-    packages:
-    - ansible
-    runcmd:
-      - |
-        ansible-pull -C ${var.revision} --clean --purge -i localhost, \
-        -U https://github.com/the-technat/tevbox.git \
-        -vv -e username=${var.username} \
-        -e fqdn="${local.fqdn}" -e "password=${var.password}" \
-        tevbox.yml
-  EOT
+  user_data = data.cloudinit_config.tevbox.rendered
 }
 
+data "cloudinit_config" "tevbox" {
+  gzip          = false
+  base64_encode = false
+
+  part {
+    filename     = "tevbox.sh"
+    content_type = "text/x-shellscript"
+
+    content = templatefile("${path.module}/tevbox.sh", {
+      enable_ssh        = var.enable_ssh
+      username          = var.username
+      password          = var.password
+      fqdn              = local.fqdn
+      hetzner_dns_token = nonsensitive(var.hetzner_dns_token)
+    })
+  }
+
+}
 resource "hetznerdns_record" "tevbox_v4" {
   zone_id = data.hetznerdns_zone.main.id
   name    = var.hostname
@@ -64,6 +71,26 @@ resource "hcloud_rdns" "tevbox_v4" {
   ip_address = hcloud_server.tevbox.ipv4_address
   dns_ptr    = local.fqdn
 }
+
+resource "hcloud_firewall" "ssh" {
+  count = var.enable_ssh ? 1 : 0
+  name  = "${var.hostname}-ssh"
+  rule {
+    direction = "in"
+    protocol  = "tcp"
+    port      = "22"
+    source_ips = [
+      "0.0.0.0/0",
+      "::/0"
+    ]
+  }
+}
+resource "hcloud_firewall_attachment" "ssh" {
+  count       = var.enable_ssh ? 1 : 0
+  firewall_id = hcloud_firewall.ssh[0].id
+  server_ids  = [hcloud_server.tevbox.id]
+}
+
 
 resource "hcloud_firewall" "tevbox" {
   name = var.hostname
@@ -118,8 +145,8 @@ variable "hostname" {
 }
 
 variable "password" {
-  type = string
-  sensitive = true 
+  type      = string
+  sensitive = true
 }
 
 variable "revision" {
@@ -136,6 +163,10 @@ variable "type" {
 
 variable "location" {
   type = string
+}
+
+variable "enable_ssh" {
+  type = bool
 }
 
 # these vars are filled by GH action secrets

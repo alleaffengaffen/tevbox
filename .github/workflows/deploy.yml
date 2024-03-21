@@ -40,6 +40,10 @@ on:
           - ash
           - hil
         description: Location of the box
+      enable_ssh:
+        type: boolean
+        default: false
+        description: Enable SSH access?
       
 jobs:
   terraform:
@@ -72,12 +76,13 @@ jobs:
       - name: Create variables file
         run: |
           tee ${{ github.event.inputs.hostname }}.tfvars << END
-            hostname = "${{ github.event.inputs.hostname }}"
-            password = "${{ github.event.inputs.password }}"
-            type     = "${{ github.event.inputs.type }}"
-            location = "${{ github.event.inputs.location }}"
-            revision = "${GITHUB_REF##*/}"
-            username = "${{ github.actor }}"
+            hostname   = "${{ github.event.inputs.hostname }}"
+            password   = "${{ github.event.inputs.password }}"
+            type       = "${{ github.event.inputs.type }}"
+            location   = "${{ github.event.inputs.location }}"
+            enable_ssh = "${{ github.event.inputs.enable_ssh }}"
+            revision   = "${GITHUB_REF##*/}"
+            username   = "${{ github.actor }}"
           END
       - name: Save variables file to s3
         run: aws s3 cp ${{ github.event.inputs.hostname }}.tfvars s3://${{ env.STATE_BUCKET }}/${{ github.event.inputs.hostname}}.tfvars
