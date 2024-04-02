@@ -18,7 +18,8 @@ systemctl mask ssh
 
 ### User
 useradd ${username} -m -s /usr/bin/bash -G sudo -p ${password}
-echo "${username} ALL=(ALL) NOPASSWD: ALL" | tee -a /etc/sudoers 
+echo "${username} ALL=(ALL) NOPASSWD: ALL" | tee -a /etc/sudoers
+loginctl enable-linger ${username} # used to autostart the systemd/user session that reads env vars for code-server
 
 ### Caddy
 caddy add-package github.com/caddy-dns/hetzner 
