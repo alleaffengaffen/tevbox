@@ -96,10 +96,10 @@ jobs:
           terraform_wrapper: false
       - name: terraform init
         id: init
-        run: terraform init -chdir=hcloud -backend-config=s3.tfbackend
+        run: terraform -chdir=hcloud init  -backend-config=s3.tfbackend
       - name: terraform apply
         if: ${{ github.event.inputs.destory == false }}
-        run: terraform apply -chdir=hcloud -auto-approve -input=false -var-file ${{ github.event.inputs.hostname }}.tfvars
+        run: terraform -chdir=hcloud apply d -auto-approve -input=false -var-file ${{ github.event.inputs.hostname }}.tfvars
       - name: terraform Output
         run: |
           terraform -chdir=hcloud output > $GITHUB_STEP_SUMMARY
@@ -107,7 +107,7 @@ jobs:
         if: ${{ github.event.inputs.destory == true }}
         # env:
         # TF_VAR_hostname: ${{ github.event.inputs.hostname }}
-        run: terraform destroy -chdir=hcloud -auto-approve -input=false -var-file ${{ github.event.inputs.hostname }}.tfvars
+        run: terraform -chdir=hcloud destroy  -auto-approve -input=false -var-file ${{ github.event.inputs.hostname }}.tfvars
       - name: delete state
         if: ${{ github.event.inputs.destory == true }}
         run: aws s3 rm s3://${{ env.STATE_BUCKET }}/${{ github.event.inputs.hostname }}
