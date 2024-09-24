@@ -55,7 +55,7 @@ jobs:
       STATE_BUCKET_REGION: "eu-west-1"
       TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
       TF_VAR_hetzner_dns_token: ${{ secrets.HETZNER_DNS_TOKEN }}
-      TF_var_tailscale_api_key: ${{ secrets.TAILSCALE_API_KEY }}
+      TF_VAR_tailscale_api_key: ${{ secrets.TAILSCALE_API_KEY }}
     steps:
       - name: checkout repository
         uses: actions/checkout@v4
