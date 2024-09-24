@@ -1,19 +1,19 @@
-name: Checks
+name: Hcloud checks
 
 on:
- pull_request:
- push: 
+  pull_request:
+  push:
 
 jobs:
   terraform:
-    name: "Terraform Checks"
+    name: "Terraform hcloud Checks"
     runs-on: ubuntu-latest
-    permissions: 
+    permissions:
       id-token: write
       contents: read
     env:
       STATE_BUCKET: "gh-tevbox"
-      STATE_BUCKET_REGION: "eu-west-1" 
+      STATE_BUCKET_REGION: "eu-west-1"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -25,16 +25,16 @@ jobs:
           role-to-assume: arn:aws:iam::351425708426:role/gh-tevbox
           role-session-name: tevbox
           aws-region: ${{ env.STATE_BUCKET_REGION }}
-      - name: Create Terraform backend configuration
+      - name: create Terraform backend configuration
         run: |
-          tee s3.tfbackend << END
+          tee hcloud/s3.tfbackend << END
             key    = "ci"
             bucket = "${{ env.STATE_BUCKET }}"
             region = "${{ env.STATE_BUCKET_REGION }}"
           END
-      - name: Terraform Init
+      - name: Terraform init
         id: init
-        run: terraform init -backend-config=s3.tfbackend
-      - name: Terraform Validate
+        run: terraform -chdir=hcloud init -backend-config=s3.tfbackend
+      - name: Terraform validate
         id: validate
-        run: terraform validate -no-color
+        run: terraform -chdir=hcloud validate -no-color

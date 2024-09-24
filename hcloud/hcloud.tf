@@ -2,17 +2,15 @@
 # Resources
 ############
 resource "hcloud_server" "tevbox" {
-  name         = var.hostname
-  image        = "ubuntu-22.04"
-  server_type  = var.type
-  location     = var.location
-  keep_disk    = true
-  firewall_ids = [hcloud_firewall.tevbox.id]
+  name        = var.hostname
+  image       = "ubuntu-24.04"
+  server_type = var.type
+  location    = var.location
+  keep_disk   = true
   public_net {
     ipv4_enabled = true
     ipv6_enabled = true
   }
-
   user_data = data.cloudinit_config.tevbox.rendered
 }
 
@@ -21,15 +19,15 @@ data "cloudinit_config" "tevbox" {
   base64_encode = false
 
   part {
-    filename     = "tevbox.sh"
+    filename     = "hcloud.sh"
     content_type = "text/x-shellscript"
 
-    content = templatefile("${path.module}/tevbox.sh", {
-      enable_ssh        = var.enable_ssh
-      username          = var.username
-      password          = var.password
-      fqdn              = local.fqdn
-      hetzner_dns_token = nonsensitive(var.hetzner_dns_token)
+    content = templatefile("${path.module}/hcloud.sh", {
+      tailscale_auth_key = nonsensitive(tailscale_tailnet_key.tevbox.key)
+      username           = var.username
+      password           = var.password
+      fqdn               = local.fqdn
+      hetzner_dns_token  = nonsensitive(var.hetzner_dns_token)
     })
   }
 
@@ -72,57 +70,12 @@ resource "hcloud_rdns" "tevbox_v4" {
   dns_ptr    = local.fqdn
 }
 
-resource "hcloud_firewall" "ssh" {
-  count = var.enable_ssh ? 1 : 0
-  name  = "${var.hostname}-ssh"
-  rule {
-    direction = "in"
-    protocol  = "tcp"
-    port      = "22"
-    source_ips = [
-      "0.0.0.0/0",
-      "::/0"
-    ]
-  }
-}
-resource "hcloud_firewall_attachment" "ssh" {
-  count       = var.enable_ssh ? 1 : 0
-  firewall_id = hcloud_firewall.ssh[0].id
-  server_ids  = [hcloud_server.tevbox.id]
-}
-
-
-resource "hcloud_firewall" "tevbox" {
-  name = var.hostname
-  rule {
-    direction = "in"
-    protocol  = "icmp"
-    source_ips = [
-      "0.0.0.0/0",
-      "::/0"
-    ]
-  }
-
-  rule {
-    direction = "in"
-    protocol  = "tcp"
-    port      = "80"
-    source_ips = [
-      "0.0.0.0/0",
-      "::/0"
-    ]
-  }
-
-  rule {
-    direction = "in"
-    protocol  = "tcp"
-    port      = "443"
-    source_ips = [
-      "0.0.0.0/0",
-      "::/0"
-    ]
-  }
-
+resource "tailscale_tailnet_key" "tevbox" {
+  reusable      = false
+  ephemeral     = false
+  preauthorized = true
+  expiry        = 3600
+  description   = "${var.hostname} tevbox"
 }
 
 ############
@@ -136,8 +89,9 @@ data "hetznerdns_zone" "main" {
 # Variables
 ############
 locals {
-  zone = "technat.dev"
-  fqdn = "${var.hostname}.${local.zone}"
+  zone    = "technat.dev"
+  tailnet = "the-technat.github"
+  fqdn    = "${var.hostname}.${local.zone}"
 }
 
 variable "hostname" {
@@ -165,16 +119,16 @@ variable "location" {
   type = string
 }
 
-variable "enable_ssh" {
-  type = bool
-}
-
 # these vars are filled by GH action secrets
 variable "hcloud_token" {
   type      = string
   sensitive = true
 }
 variable "hetzner_dns_token" {
+  type      = string
+  sensitive = true
+}
+variable "tailscale_api_key" {
   type      = string
   sensitive = true
 }
@@ -221,6 +175,11 @@ provider "hetznerdns" {
   apitoken = var.hetzner_dns_token
 }
 
+provider "tailscale" {
+  api_key = var.tailscale_api_key
+  tailnet = local.tailnet
+}
+
 terraform {
   backend "s3" {} # github actions will configure the rest
   required_providers {
@@ -231,6 +190,10 @@ terraform {
     hetznerdns = {
       source  = "timohirt/hetznerdns"
       version = "2.2.0"
+    }
+    tailscale = {
+      source  = "tailscale/tailscale"
+      version = "0.17.1"
     }
   }
 }

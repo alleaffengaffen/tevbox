@@ -1,4 +1,4 @@
-name: Create new box
+name: Hcloud instance
 
 on:
   workflow_dispatch:
@@ -9,7 +9,6 @@ on:
         description: Hostname of the box
       password:
         type: string
-        required: true
         description: Password for the code-server
       type:
         type: choice
@@ -40,25 +39,25 @@ on:
           - ash
           - hil
         description: Location of the box
-      enable_ssh:
+      destroy:
         type: boolean
-        default: false
-        description: Enable SSH access?
-      
+        description: Shall the box be destroyed?
+
 jobs:
   terraform:
-    name: "Deploying tevbox..."
+    name: "tevbox..."
     runs-on: ubuntu-latest
-    permissions: 
+    permissions:
       id-token: write
       contents: read
     env:
       STATE_BUCKET: "gh-tevbox"
-      STATE_BUCKET_REGION: "eu-west-1" 
+      STATE_BUCKET_REGION: "eu-west-1"
       TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
       TF_VAR_hetzner_dns_token: ${{ secrets.HETZNER_DNS_TOKEN }}
+      TF_var_tailscale_api_key: ${{ secrets.TAILSCALE_API_KEY }}
     steps:
-      - name: Checkout
+      - name: checkout repository
         uses: actions/checkout@v4
       - name: configure aws credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -66,36 +65,49 @@ jobs:
           role-to-assume: arn:aws:iam::351425708426:role/gh-tevbox
           role-session-name: tevbox
           aws-region: ${{ env.STATE_BUCKET_REGION }}
-      - name: Create Terraform backend configuration
+      - name: create Terraform backend configuration
         run: |
-          tee s3.tfbackend << END
+          tee hcloud/s3.tfbackend << END
             key    = "${{ github.event.inputs.hostname }}"
             bucket = "${{ env.STATE_BUCKET }}"
             region = "${{ env.STATE_BUCKET_REGION }}"
           END
-      - name: Create variables file
+      - name: create variables file
+        if: ${{ github.event.inputs.destory == false }}
         run: |
-          tee ${{ github.event.inputs.hostname }}.tfvars << END
+          tee hcloud/${{ github.event.inputs.hostname }}.tfvars << END
             hostname   = "${{ github.event.inputs.hostname }}"
             password   = "${{ github.event.inputs.password }}"
             type       = "${{ github.event.inputs.type }}"
             location   = "${{ github.event.inputs.location }}"
-            enable_ssh = "${{ github.event.inputs.enable_ssh }}"
             revision   = "${GITHUB_REF##*/}"
             username   = "${{ github.actor }}"
           END
-      - name: Save variables file to s3
-        run: aws s3 cp ${{ github.event.inputs.hostname }}.tfvars s3://${{ env.STATE_BUCKET }}/${{ github.event.inputs.hostname}}.tfvars
-      - name: Setup terraform
+      - name: save variables file to s3
+        if: ${{ github.event.inputs.destory == false }}
+        run: aws s3 cp hcloud/${{ github.event.inputs.hostname }}.tfvars s3://${{ env.STATE_BUCKET }}/${{ github.event.inputs.hostname}}.tfvars
+      - name: grab variables file from s3
+        if: ${{ github.event.inputs.destory == true }}
+        run: aws s3 mv s3://${{ env.STATE_BUCKET }}/${{ github.event.inputs.hostname}}.tfvars hcloud/${{ github.event.inputs.hostname }}.tfvars
+      - name: setup terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.7.3
+          terraform_version: 1.9.6
           terraform_wrapper: false
-      - name: Terraform Init
+      - name: terraform init
         id: init
-        run: terraform init -backend-config=s3.tfbackend
-      - name: Terraform Apply 
-        run: terraform apply -auto-approve -input=false -var-file ${{ github.event.inputs.hostname }}.tfvars
-      - name: Terraform Output
+        run: terraform init -chdir=hcloud -backend-config=s3.tfbackend
+      - name: terraform apply
+        if: ${{ github.event.inputs.destory == false }}
+        run: terraform apply -chdir=hcloud -auto-approve -input=false -var-file ${{ github.event.inputs.hostname }}.tfvars
+      - name: terraform Output
         run: |
-          terraform output > $GITHUB_STEP_SUMMARY
+          terraform -chdir=hcloud output > $GITHUB_STEP_SUMMARY
+      - name: terraform destroy
+        if: ${{ github.event.inputs.destory == true }}
+        # env:
+        # TF_VAR_hostname: ${{ github.event.inputs.hostname }}
+        run: terraform destroy -chdir=hcloud -auto-approve -input=false -var-file ${{ github.event.inputs.hostname }}.tfvars
+      - name: delete state
+        if: ${{ github.event.inputs.destory == true }}
+        run: aws s3 rm s3://${{ env.STATE_BUCKET }}/${{ github.event.inputs.hostname }}

@@ -1,7 +1,7 @@
 #!/bin/sh
-# Note: must be executed as root
+# must be executed as root
 
-### APT
+### install caddy
 # https://caddyserver.com/docs/install#debian-ubuntu-raspbian
 apt install -y apt-transport-https curl
 curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
@@ -10,18 +10,16 @@ apt update
 apt install caddy
 apt dist-upgrade -y
 
-### SSH
-%{ if enable_ssh }
+### disable regular ssh
 systemctl disable --now ssh
 systemctl mask ssh
-%{ endif }
 
-### User
+### create user
 useradd ${username} -m -s /usr/bin/bash -G sudo -p ${password}
 echo "${username} ALL=(ALL) NOPASSWD: ALL" | tee -a /etc/sudoers
 loginctl enable-linger ${username} # used to autostart the systemd/user session that reads env vars for code-server
 
-### Caddy
+### configure caddy
 caddy add-package github.com/caddy-dns/hetzner 
 cat <<EOF | tee /etc/caddy/Caddyfile
 ${fqdn} {
@@ -39,7 +37,7 @@ ${fqdn} {
 EOF
 sudo systemctl restart caddy
 
-### Code-server
+### install code-server
 curl -fsSL -o /tmp/install.sh https://code-server.dev/install.sh 
 chmod +x /tmp/install.sh
 HOME=/root /tmp/install.sh
@@ -52,26 +50,13 @@ password: ${password}
 cert: false
 proxy-domain: ${fqdn}
 EOF
-
-### Code OSS
-sudo -u ${username} code-server --install-extension  redhat.vscode-yaml
-sudo -u ${username} code-server --install-extension  vscodevim.vim
-sudo -u ${username} code-server --install-extension  golang.Go
-sudo -u ${username} code-server --install-extension  hashicorp.terraform
-sudo -u ${username} code-server --install-extension  ms-kubernetes-tools.vscode-kubernetes-tools
-cat << EOF |sudo -u ${username} tee /home/${username}/.local/share/code-server/User/settings.json
-{
-  "workbench.colorTheme": "Solarized Dark",
-  "redhat.telemetry.enabled": false,
-  "workbench.sideBar.location": "right",
-  "workbench.startupEditor": "none",
-  "terminal.integrated.defaultProfile.linux": "zsh",
-  "explorer.confirmDragAndDrop": false
-}
-EOF
 sudo systemctl restart code-server@${username}
-         
-### Chezmoi
+
+### install tailscale
+curl -fsSL https://tailscale.com/install.sh | sh
+sudo tailscale up --ssh --auth-key "${tailscale_auth_key}"
+
+### install chezmoi
 curl -fsSL -o /tmp/chezmoi-install.sh https://get.chezmoi.io
 chmod +x /tmp/chezmoi-install.sh
 sudo -u ${username} /tmp/chezmoi-install.sh -b /home/${username}/.local/bin
