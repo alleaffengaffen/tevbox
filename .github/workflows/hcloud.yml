@@ -99,7 +99,7 @@ jobs:
         run: terraform -chdir=hcloud init  -backend-config=s3.tfbackend
       - name: terraform apply
         if: ${{ github.event.inputs.destory == false }}
-        run: terraform -chdir=hcloud apply d -auto-approve -input=false -var-file ${{ github.event.inputs.hostname }}.tfvars
+        run: terraform -chdir=hcloud apply -auto-approve -input=false -var-file ${{ github.event.inputs.hostname }}.tfvars
       - name: terraform Output
         run: |
           terraform -chdir=hcloud output > $GITHUB_STEP_SUMMARY
