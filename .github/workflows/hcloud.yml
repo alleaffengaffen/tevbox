@@ -55,6 +55,7 @@ jobs:
       STATE_BUCKET: "ghtevbox"
       S3_ENDPOINT: "fsn1.your-objectstorage.com"
       S3_REGION: "fsn1"
+      TAILNET: "the-technat.github"
       AWS_ACCESS_KEY_ID: ${{ secrets.HCLOUD_S3_ACCESS_KEY }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.HCLOUD_S3_SECRET_KEY }}
       TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
@@ -119,6 +120,14 @@ jobs:
       - name: delete state
         if: ${{ github.event.inputs.action == 'destroy' }}
         run: s3cmd del s3://${{ env.STATE_BUCKET }}/${{ github.event.inputs.hostname }}
+      - name: delete machine from tailnet
+        if: ${{ github.event.inputs.action == 'destroy' }}
+        run: |
+          id=$(curl --request GET \
+            --url https://api.tailscale.com/api/v2/tailnet/${{ env.TAILNET }}/devices \
+            --header 'Authorization: Bearer ${{ secrets.TAILSCALE_API_KEY }}' \
+            | jq '.[] | .[] | select(.name | contains("${{ github.event.inputs.hostname }}")) | .id' | tr -d "\"")
+           curl -X DELETE "https://api.tailscale.com/api/v2/device/$id"
       - name: terraform output
         run: |
           terraform -chdir=hcloud output > $GITHUB_STEP_SUMMARY
