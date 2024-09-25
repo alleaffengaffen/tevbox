@@ -56,6 +56,15 @@ sudo systemctl restart code-server@${username}
 curl -fsSL https://tailscale.com/install.sh | sh
 sudo tailscale up --ssh --auth-key "${tailscale_auth_key}"
 
+### ufw
+apt install ufw -y
+ufw default deny incoming
+ufw default allow outgoing
+ufw allow in on tailscale0
+ufw allow 443
+ufw allow 80
+ufw --force enable
+
 ### install chezmoi
 curl -fsSL -o /tmp/chezmoi-install.sh https://get.chezmoi.io
 chmod +x /tmp/chezmoi-install.sh
