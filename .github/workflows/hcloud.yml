@@ -1,4 +1,4 @@
-name: Hcloud instance
+name: Hcloud box
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ on:
         description: Hostname of the box
       action:
         type: choice
-        description: What do to with the box?
+        description: What to do with the box?
         default: "create"
         options:
           - "create"
@@ -51,30 +51,39 @@ jobs:
   terraform:
     name: "tevbox..."
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
     env:
-      STATE_BUCKET: "gh-tevbox"
-      STATE_BUCKET_REGION: "eu-west-1"
+      STATE_BUCKET: "ghtevbox"
+      S3_ENDPOINT: "fsn1.your-objectstorage.com"
+      S3_REGION: "fsn1"
+      AWS_ACCESS_KEY_ID: ${{ secrets.HCLOUD_S3_ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.HCLOUD_S3_SECRET_KEY }}
       TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
       TF_VAR_hetzner_dns_token: ${{ secrets.HETZNER_DNS_TOKEN }}
       TF_VAR_tailscale_api_key: ${{ secrets.TAILSCALE_API_KEY }}
     steps:
       - name: checkout repository
         uses: actions/checkout@v4
-      - name: configure aws credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: set up S3cmd cli tool
+        uses: s3-actions/s3cmd@v1.8.0
         with:
-          role-to-assume: arn:aws:iam::351425708426:role/gh-tevbox
-          role-session-name: tevbox
-          aws-region: ${{ env.STATE_BUCKET_REGION }}
+          provider: aws
+          access_key: ${{ secrets.HCLOUD_S3_ACCESS_KEY }}
+          secret_key: ${{ secrets.HCLOUD_S3_SECRET_KEY }}
+      - name: adjust s3cmd config for hcloud
+        run: sed -i 's/s3\.amazonaws\.com/${{ env.S3_ENDPOINT }}/g' ~/.s3cfg
       - name: create Terraform backend configuration
         run: |
           tee hcloud/s3.tfbackend << END
             key    = "${{ github.event.inputs.hostname }}"
             bucket = "${{ env.STATE_BUCKET }}"
-            region = "${{ env.STATE_BUCKET_REGION }}"
+            region = "${{ env.S3_REGION }}"
+            skip_region_validation = true
+            skip_requesting_account_id = true
+            skip_s3_checksum = true
+            skip_credentials_validation = true
+            endpoints = {
+              s3 = "https://${{ env.S3_ENDPOINT }}"  
+            }
           END
       - name: create variables file
         if: ${{ github.event.inputs.action == 'create' }}
@@ -89,10 +98,10 @@ jobs:
           END
       - name: save variables file to s3
         if: ${{ github.event.inputs.action == 'create' }}
-        run: aws s3 cp hcloud/${{ github.event.inputs.hostname }}.tfvars s3://${{ env.STATE_BUCKET }}/${{ github.event.inputs.hostname}}.tfvars
+        run: s3cmd put hcloud/${{ github.event.inputs.hostname }}.tfvars s3://${{ env.STATE_BUCKET }}/${{ github.event.inputs.hostname}}.tfvars
       - name: grab variables file from s3
         if: ${{ github.event.inputs.action == 'destroy' }}
-        run: aws s3 mv s3://${{ env.STATE_BUCKET }}/${{ github.event.inputs.hostname}}.tfvars hcloud/${{ github.event.inputs.hostname }}.tfvars
+        run: s3cmd get s3://${{ env.STATE_BUCKET }}/${{ github.event.inputs.hostname}}.tfvars hcloud/${{ github.event.inputs.hostname }}.tfvars
       - name: setup terraform
         uses: hashicorp/setup-terraform@v3
         with:
@@ -106,12 +115,10 @@ jobs:
         run: terraform -chdir=hcloud apply -auto-approve -input=false -var-file ${{ github.event.inputs.hostname }}.tfvars
       - name: terraform destroy
         if: ${{ github.event.inputs.action == 'destroy' }}
-        # env:
-        # TF_VAR_hostname: ${{ github.event.inputs.hostname }}
         run: terraform -chdir=hcloud destroy -auto-approve -input=false -var-file ${{ github.event.inputs.hostname }}.tfvars
       - name: delete state
         if: ${{ github.event.inputs.action == 'destroy' }}
-        run: aws s3 rm s3://${{ env.STATE_BUCKET }}/${{ github.event.inputs.hostname }}
+        run: s3cmd del s3://${{ env.STATE_BUCKET }}/${{ github.event.inputs.hostname }}
       - name: terraform output
         run: |
           terraform -chdir=hcloud output > $GITHUB_STEP_SUMMARY
