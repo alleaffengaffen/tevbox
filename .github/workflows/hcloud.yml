@@ -123,11 +123,11 @@ jobs:
       - name: delete machine from tailnet
         if: ${{ github.event.inputs.action == 'destroy' }}
         run: |
-          id=$(curl --request GET \
-            --url https://api.tailscale.com/api/v2/tailnet/${{ env.TAILNET }}/devices \
-            --header 'Authorization: Bearer ${{ secrets.TAILSCALE_API_KEY }}' \
-            | jq '.[] | .[] | select(.name | contains("${{ github.event.inputs.hostname }}")) | .id' | tr -d "\"")
-           curl -X DELETE "https://api.tailscale.com/api/v2/device/$id"
+          id=$(curl --fail-with-body -sSL \
+           -H "Authorization: Bearer ${{ secrets.TAILSCALE_API_KEY }}" \
+           https://api.tailscale.com/api/v2/tailnet/${{ env.TAILNET }}/devices \
+           | jq '.[] | .[] | select(.name | contains("${{ github.event.inputs.hostname }}")) | .id' | tr -d "\"")
+          curl --fail-with-boxy -sSL -X DELETE -H "Authorization: Bearer ${{ secrets.TAILSCALE_API_KEY }}" https://api.tailscale.com/api/v2/device/$id"
       - name: terraform output
         run: |
           terraform -chdir=hcloud output > $GITHUB_STEP_SUMMARY
