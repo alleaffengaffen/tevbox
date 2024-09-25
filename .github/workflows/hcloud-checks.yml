@@ -12,29 +12,44 @@ jobs:
       id-token: write
       contents: read
     env:
-      STATE_BUCKET: "gh-tevbox"
-      STATE_BUCKET_REGION: "eu-west-1"
+      STATE_BUCKET: "ghtevbox"
+      S3_ENDPOINT: "fsn1.your-objectstorage.com"
+      S3_REGION: "fsn1"
+      AWS_ACCESS_KEY_ID: ${{ secrets.HCLOUD_S3_ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.HCLOUD_S3_SECRET_KEY }}
     steps:
-      - name: Checkout
+      - name: checkout repo
         uses: actions/checkout@v4
-      - name: Setup terraform
-        uses: hashicorp/setup-terraform@v3
-      - name: configure aws credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: set up S3cmd cli tool
+        uses: s3-actions/s3cmd@v1.8.0
         with:
-          role-to-assume: arn:aws:iam::351425708426:role/gh-tevbox
-          role-session-name: tevbox
-          aws-region: ${{ env.STATE_BUCKET_REGION }}
+          provider: aws
+          access_key: ${{ secrets.HCLOUD_S3_ACCESS_KEY }}
+          secret_key: ${{ secrets.HCLOUD_S3_SECRET_KEY }}
+      - name: adjust s3cmd config for hcloud
+        run: sed -i 's/s3\.amazonaws\.com/${{ env.S3_ENDPOINT }}/g' ~/.s3cfg
+      - name: setup terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.6
+          terraform_wrapper: false
       - name: create Terraform backend configuration
         run: |
           tee hcloud/s3.tfbackend << END
             key    = "ci"
             bucket = "${{ env.STATE_BUCKET }}"
-            region = "${{ env.STATE_BUCKET_REGION }}"
+            region = "${{ env.S3_REGION }}"
+            skip_region_validation = true
+            skip_requesting_account_id = true
+            skip_s3_checksum = true
+            skip_credentials_validation = true
+            endpoints = {
+              s3 = "https://${{ env.S3_ENDPOINT }}"  
+            }
           END
-      - name: Terraform init
+      - name: terraform init
         id: init
         run: terraform -chdir=hcloud init -backend-config=s3.tfbackend
-      - name: Terraform validate
+      - name: terraform validate
         id: validate
         run: terraform -chdir=hcloud validate -no-color
