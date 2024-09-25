@@ -125,7 +125,7 @@ jobs:
         run: |
           id=$(curl --fail-with-body -sSL -H "Authorization: Bearer ${{ secrets.TAILSCALE_API_KEY }}" \
             https://api.tailscale.com/api/v2/tailnet/${{ env.TAILNET }}/devices \
-            | jq -r '.[] | .[] | select(.name | contains("${{ github.event.inputs.hostname }}")) | .id' | tr -d "\"")
+            | jq -r ".[] | .[] | select(.name | contains(\"${{ github.event.inputs.hostname }}\")) | .id" | tr -d "\"")
 
           curl --fail-with-boxy -sSL -X DELETE -H "Authorization: Bearer ${{ secrets.TAILSCALE_API_KEY }}" https://api.tailscale.com/api/v2/device/$id"
       - name: terraform output
