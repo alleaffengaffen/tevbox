@@ -7,6 +7,13 @@ on:
         type: string
         required: true
         description: Hostname of the box
+      action:
+        type: choice
+        description: What do to with the box?
+        default: "create"
+        options:
+          - "create"
+          - "destroy"
       password:
         type: string
         description: Password for the code-server
@@ -39,9 +46,6 @@ on:
           - ash
           - hil
         description: Location of the box
-      destroy:
-        type: boolean
-        description: Shall the box be destroyed?
 
 jobs:
   terraform:
@@ -73,7 +77,7 @@ jobs:
             region = "${{ env.STATE_BUCKET_REGION }}"
           END
       - name: create variables file
-        if: ${{ github.event.inputs.destory == 'false' }}
+        if: ${{ github.event.inputs.action == 'create' }}
         run: |
           tee hcloud/${{ github.event.inputs.hostname }}.tfvars << END
             hostname   = "${{ github.event.inputs.hostname }}"
@@ -84,10 +88,10 @@ jobs:
             username   = "${{ github.actor }}"
           END
       - name: save variables file to s3
-        if: ${{ github.event.inputs.destory == 'false' }}
+        if: ${{ github.event.inputs.action == 'create' }}
         run: aws s3 cp hcloud/${{ github.event.inputs.hostname }}.tfvars s3://${{ env.STATE_BUCKET }}/${{ github.event.inputs.hostname}}.tfvars
       - name: grab variables file from s3
-        if: ${{ github.event.inputs.destory == 'true' }}
+        if: ${{ github.event.inputs.action == 'destroy' }}
         run: aws s3 mv s3://${{ env.STATE_BUCKET }}/${{ github.event.inputs.hostname}}.tfvars hcloud/${{ github.event.inputs.hostname }}.tfvars
       - name: setup terraform
         uses: hashicorp/setup-terraform@v3
@@ -96,18 +100,18 @@ jobs:
           terraform_wrapper: false
       - name: terraform init
         id: init
-        run: terraform -chdir=hcloud init  -backend-config=s3.tfbackend
+        run: terraform -chdir=hcloud init -backend-config=s3.tfbackend
       - name: terraform apply
-        if: ${{ github.event.inputs.destory == 'false' }}
+        if: ${{ github.event.inputs.action == 'create' }}
         run: terraform -chdir=hcloud apply -auto-approve -input=false -var-file ${{ github.event.inputs.hostname }}.tfvars
-      - name: terraform Output
-        run: |
-          terraform -chdir=hcloud output > $GITHUB_STEP_SUMMARY
       - name: terraform destroy
-        if: ${{ github.event.inputs.destory == 'true' }}
+        if: ${{ github.event.inputs.action == 'destroy' }}
         # env:
         # TF_VAR_hostname: ${{ github.event.inputs.hostname }}
-        run: terraform -chdir=hcloud destroy  -auto-approve -input=false -var-file ${{ github.event.inputs.hostname }}.tfvars
+        run: terraform -chdir=hcloud destroy -auto-approve -input=false -var-file ${{ github.event.inputs.hostname }}.tfvars
       - name: delete state
-        if: ${{ github.event.inputs.destory == 'true' }}
+        if: ${{ github.event.inputs.action == 'destroy' }}
         run: aws s3 rm s3://${{ env.STATE_BUCKET }}/${{ github.event.inputs.hostname }}
+      - name: terraform output
+        run: |
+          terraform -chdir=hcloud output > $GITHUB_STEP_SUMMARY
