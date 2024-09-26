@@ -64,9 +64,3 @@ ufw allow in on tailscale0
 ufw allow 443
 ufw allow 80
 ufw --force enable
-
-### install chezmoi
-curl -fsSL -o /tmp/chezmoi-install.sh https://get.chezmoi.io
-chmod +x /tmp/chezmoi-install.sh
-sudo -u ${username} /tmp/chezmoi-install.sh -b /home/${username}/.local/bin
-sudo -u ${username} /home/${username}/.local/bin/chezmoi init --apply ${username}
