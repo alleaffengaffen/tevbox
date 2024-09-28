@@ -1,6 +1,19 @@
 #!/bin/sh
 # must be executed as root
 
+### install tailscale
+curl -fsSL https://tailscale.com/install.sh | sh
+sudo tailscale up --ssh --auth-key "${tailscale_auth_key}"
+
+### ufw
+apt install ufw -y
+ufw default deny incoming
+ufw default allow outgoing
+ufw allow in on tailscale0
+ufw allow 443
+ufw allow 80
+ufw --force enable
+
 ### install caddy
 # https://caddyserver.com/docs/install#debian-ubuntu-raspbian
 apt install -y apt-transport-https curl
@@ -51,16 +64,3 @@ cert: false
 proxy-domain: ${fqdn}
 EOF
 sudo systemctl restart code-server@${username}
-
-### install tailscale
-curl -fsSL https://tailscale.com/install.sh | sh
-sudo tailscale up --ssh --auth-key "${tailscale_auth_key}"
-
-### ufw
-apt install ufw -y
-ufw default deny incoming
-ufw default allow outgoing
-ufw allow in on tailscale0
-ufw allow 443
-ufw allow 80
-ufw --force enable
