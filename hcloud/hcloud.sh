@@ -39,12 +39,14 @@ ${fqdn} {
   reverse_proxy 127.0.0.1:65000
   tls {
     dns hetzner ${hetzner_dns_token}
+    resolvers 1.1.1.1
   }
 }
 *.${fqdn} {
   reverse_proxy 127.0.0.1:65000
   tls {
     dns hetzner ${hetzner_dns_token}
+    resolvers 1.1.1.1
   }
 }
 EOF
