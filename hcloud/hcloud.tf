@@ -76,6 +76,7 @@ resource "tailscale_tailnet_key" "tevbox" {
   preauthorized = true
   expiry        = 3600
   description   = "${var.hostname} tevbox"
+  tags          = ["acl-server"]
 }
 
 ############
