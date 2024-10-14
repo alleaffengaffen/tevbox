@@ -21,7 +21,7 @@ jobs:
       - name: checkout repo
         uses: actions/checkout@v4
       - name: set up S3cmd cli tool
-        uses: s3-actions/s3cmd@v1.8.0
+        uses: s3-actions/s3cmd@v1.8.1
         with:
           provider: aws
           access_key: ${{ secrets.HCLOUD_S3_ACCESS_KEY }}
