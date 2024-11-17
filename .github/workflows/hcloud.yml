@@ -52,7 +52,7 @@ jobs:
     name: "tevbox..."
     runs-on: ubuntu-latest
     env:
-      STATE_BUCKET: "ghtevbox"
+      STATE_BUCKET: "tevbox"
       S3_ENDPOINT: "fsn1.your-objectstorage.com"
       S3_REGION: "fsn1"
       TAILNET: "the-technat.github"
