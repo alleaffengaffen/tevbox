@@ -8,46 +8,17 @@ jobs:
   terraform:
     name: "Terraform hcloud Checks"
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-    env:
-      STATE_BUCKET: "tevbox"
-      S3_ENDPOINT: "fsn1.your-objectstorage.com"
-      S3_REGION: "fsn1"
-      AWS_ACCESS_KEY_ID: ${{ secrets.HCLOUD_S3_ACCESS_KEY }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.HCLOUD_S3_SECRET_KEY }}
     steps:
       - name: checkout repo
         uses: actions/checkout@v4
-      - name: set up S3cmd cli tool
-        uses: s3-actions/s3cmd@v1.9.0
-        with:
-          provider: hcloud
-          access_key: ${{ secrets.HCLOUD_S3_ACCESS_KEY }}
-          secret_key: ${{ secrets.HCLOUD_S3_SECRET_KEY }}
       - name: setup terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.9.8
           terraform_wrapper: false
-      - name: create Terraform backend configuration
-        run: |
-          tee hcloud/s3.tfbackend << END
-            key    = "ci"
-            bucket = "${{ env.STATE_BUCKET }}"
-            region = "${{ env.S3_REGION }}"
-            skip_region_validation = true
-            skip_requesting_account_id = true
-            skip_s3_checksum = true
-            skip_credentials_validation = true
-            endpoints = {
-              s3 = "https://${{ env.S3_ENDPOINT }}"  
-            }
-          END
       - name: terraform init
         id: init
-        run: terraform -chdir=hcloud init -backend-config=s3.tfbackend
+        run: terraform -chdir=hcloud init 
       - name: terraform validate
         id: validate
         run: terraform -chdir=hcloud validate -no-color
