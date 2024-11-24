@@ -32,6 +32,7 @@ jobs:
                 version = "0.17.2"
               }
             }
+          }
           EOF
       - name: setup terraform
         uses: hashicorp/setup-terraform@v3
