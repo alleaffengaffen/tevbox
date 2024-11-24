@@ -11,6 +11,15 @@ jobs:
     steps:
       - name: checkout repo
         uses: actions/checkout@v4
+      - name: add terraform backend override
+        run: |
+          cat <<EOF > backend_override.tf
+terraform {
+  backend "local" {
+    path = "./.local-state"
+  }
+}
+EOF
       - name: setup terraform
         uses: hashicorp/setup-terraform@v3
         with:
