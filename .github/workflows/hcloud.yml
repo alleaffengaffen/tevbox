@@ -52,7 +52,7 @@ jobs:
     name: "tevbox..."
     runs-on: ubuntu-latest
     env:
-      STATE_BUCKET: "tevbox"
+      STATE_BUCKET: "tevbox-${{ github.run_id }}-${{ github.run_attempt }}"
       S3_ENDPOINT: "fsn1.your-objectstorage.com"
       S3_REGION: "fsn1"
       TAILNET: "the-technat.github"
@@ -70,6 +70,8 @@ jobs:
           provider: hcloud
           access_key: ${{ secrets.HCLOUD_S3_ACCESS_KEY }}
           secret_key: ${{ secrets.HCLOUD_S3_SECRET_KEY }}
+      - name: create state bucket
+        run: s3cmd mb s3://${{ env.STATE_BUCKET }}
       - name: create Terraform backend configuration
         run: |
           tee hcloud/s3.tfbackend << END
@@ -117,7 +119,10 @@ jobs:
         run: terraform -chdir=hcloud destroy -auto-approve -input=false -var-file ${{ github.event.inputs.hostname }}.tfvars
       - name: delete state
         if: ${{ github.event.inputs.action == 'destroy' }}
-        run: s3cmd del s3://${{ env.STATE_BUCKET }}/${{ github.event.inputs.hostname }}
+        run: s3cmd del s3://${{ env.state_bucket }}/${{ github.event.inputs.hostname }}
+      - name: delete state bucket
+        if: ${{ github.event.inputs.action == 'destroy' }}
+        run: s3cmd rb s3://${{ env.state_bucket }}
       - name: delete machine from tailnet
         if: ${{ github.event.inputs.action == 'destroy' }}
         run: |
