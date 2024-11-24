@@ -14,12 +14,12 @@ jobs:
       - name: add terraform backend override
         run: |
           cat <<EOF > backend_override.tf
-terraform {
-  backend "local" {
-    path = "./.local-state"
-  }
-}
-EOF
+          terraform {
+            backend "local" {
+              path = "./.local-state"
+            }
+          }
+          EOF
       - name: setup terraform
         uses: hashicorp/setup-terraform@v3
         with:
