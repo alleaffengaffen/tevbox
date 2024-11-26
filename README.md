@@ -32,21 +32,19 @@ The following features will be supported using the box:
 - code-server can automatically forward traffic to dev services exposed on localhost, using the following URL pattern: `<port>.<tevbox_name>.technat.dev` 
 - cloning Github repositories is best done using `HTTPS` as code-server can automatically authenticate you against Github using device codes (has to be configured on first use)
 
+## Limitations
+
+I'm using a S3 bucket for storing Terraform state. Now since Hetzner bills you for empty buckets, the bucket is always created when a new box is needed. This means that once the box is deleted, the same hostname can't be used for 14 days (reusing bucket names on Hcloud is only allowed after 14 days).
+
 ## Preconditions
 
 For the tevbox project to work, it's important to have some static things:
 - A Hetzner project with:
   - the [account-nuker](https://github.com/the-technat/account-nuker) installed -> see [core](https://github.com/the-technat/core)
-
   - A cost limit + notification 
   - An API token for the project that is allowed to read & write (token is only used within github actions) -> see [core](https://github.com/the-technat/core)
-
   - An S3 credential -> see [core](https://github.com/the-technat/core)
-
-  - An S3 bucket for the terraform state (global, shared across tevboxes) -> see [core](https://github.com/the-technat/core)
-
 - A DNS zone hosted on Hetzner DNS (`technat.dev` for me) -> see [core](https://github.com/the-technat/core)
-  - A DNS API Token (token is used within Github actions and also shared with tevboxes to grab a DNS-01 challenge-based wildcard certificate)
+  - A DNS API Token (token is used within Github actions and also shared with tevboxes to grab a DNS-01 challenge-based wildcard certificate) -> see [core](https://github.com/the-technat/core)
 - A tailscale api key  -> see [core](https://github.com/the-technat/core)
-
 - This repo
