@@ -72,6 +72,7 @@ jobs:
           access_key: ${{ secrets.HCLOUD_S3_ACCESS_KEY }}
           secret_key: ${{ secrets.HCLOUD_S3_SECRET_KEY }}
       - name: create state bucket
+        if: ${{ github.event.inputs.action == 'create' }}
         run: s3cmd mb s3://${{ env.STATE_BUCKET }}
       - name: create Terraform backend configuration
         run: |
