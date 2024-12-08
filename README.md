@@ -40,11 +40,11 @@ I'm using a S3 bucket for storing Terraform state. Now since Hetzner bills you f
 
 For the tevbox project to work, it's important to have some static things:
 - A Hetzner project with:
-  - the [account-nuker](https://github.com/the-technat/account-nuker) installed -> see [core](https://github.com/the-technat/core)
+  - the [account-nuker](https://github.com/the-technat/account-nuker) installed 
   - A cost limit + notification 
-  - An API token for the project that is allowed to read & write (token is only used within github actions) -> see [core](https://github.com/the-technat/core)
-  - An S3 credential -> see [core](https://github.com/the-technat/core)
-- A DNS zone hosted on Hetzner DNS (`technat.dev` for me) -> see [core](https://github.com/the-technat/core)
-  - A DNS API Token (token is used within Github actions and also shared with tevboxes to grab a DNS-01 challenge-based wildcard certificate) -> see [core](https://github.com/the-technat/core)
-- A tailscale api key  -> see [core](https://github.com/the-technat/core)
+  - An API token for the project that is allowed to read & write (token is only used within github actions) 
+  - An S3 credential 
+- A DNS zone hosted on Hetzner DNS (`technat.dev` for me) 
+  - A DNS API Token (token is used within Github actions and also shared with tevboxes to grab a DNS-01 challenge-based wildcard certificate) 
+- A tailscale api key 
 - This repo
