@@ -2,6 +2,10 @@
 
 Spin up a development box in the cloud in no time.
 
+## !! Archived !! 
+
+I never really got to the point where I was using this project enough to justify the effort it takes to ensure the automation is up-to-date and works out of the box. I'm probably better using Cloud Provider's web console whenever I need something quick and easy.
+
 ## Goal
 
 There are countless situations where you'll quickly need a fresh linux box to try something or tinker on. While for some cloud providers this can be easily achived using their consoles, for other's it's rather time-consuming to create a new box. This project tries to solve this by automating the creation of a box using Github actions.
